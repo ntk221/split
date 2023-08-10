@@ -5,6 +5,8 @@ import (
 	"github.com/ntk221/split/splitter"
 	"log"
 	"os"
+
+	. "github.com/ntk221/split/commandOption"
 )
 
 const (
@@ -48,7 +50,7 @@ func main() {
 	// byteCount := *byteCountOption
 
 	validateOptions()
-	options := make([]splitter.CommandOption, 0)
+	options := make([]CommandOption, 0)
 	options = append(options, lineCount)
 	options = append(options, chunkCount)
 	// options = append(options, byteCount)
@@ -84,8 +86,8 @@ func validateOptions() {
 
 // プログラムの引数として指定されたoptionを返す
 // 事前条件: すでにoptionsは適切なものが残っていることが保証されている
-func selectOption(options []splitter.CommandOption) splitter.CommandOption {
-	var ret splitter.CommandOption = NewLineCountOption(DefaultLineCount)
+func selectOption(options []CommandOption) CommandOption {
+	var ret CommandOption = NewLineCountOption(DefaultLineCount)
 	for _, o := range options {
 		if o.IsDefaultValue() {
 			continue

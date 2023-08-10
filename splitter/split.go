@@ -6,17 +6,13 @@ import (
 	"io"
 	"log"
 	"os"
+
+	. "github.com/ntk221/split/commandOption"
 )
 
 const (
 	FileLimit = `zz` // 27^2
 )
-
-type CommandOption interface {
-	OptionType() string
-	IsDefaultValue() bool
-	ConvertToInt() int
-}
 
 type Splitter struct {
 	option       CommandOption
@@ -25,21 +21,18 @@ type Splitter struct {
 }
 
 func (s *Splitter) Split() {
-	const LineCount = "LineCount"
-	const ChunkCount = "ChunkCount"
-	const ByteCount = "ByteCount"
 
 	option := s.option
 	_ = option
-	if option.OptionType() == LineCount {
+	if option.OptionType() == LineCountType {
 		s.SplitUsingLineCount()
 		return
 	}
-	if option.OptionType() == ChunkCount {
+	if option.OptionType() == ChunkCountType {
 		s.SplitUsingChunkCount()
 		return
 	}
-	if option.OptionType() == ByteCount {
+	if option.OptionType() == ByteCountType {
 		s.SplitUsingByteCount()
 		return
 	}
@@ -57,7 +50,7 @@ func (s *Splitter) SplitUsingLineCount() {
 	lineCount := s.option
 	outputPrefix := s.outputPrefix
 
-	if lineCount.OptionType() != "LineCount" {
+	if lineCount.OptionType() != LineCountType {
 		panic("SplitUsingLineCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -100,12 +93,11 @@ func (s *Splitter) SplitUsingLineCount() {
 }
 
 func (s *Splitter) SplitUsingChunkCount() {
-	const TypeOfChunkCount = "ChunkCount"
 	chunkCount := s.option
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
 
-	if chunkCount.OptionType() != TypeOfChunkCount {
+	if chunkCount.OptionType() != ChunkCountType {
 		panic("SplitUsingChunkCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
