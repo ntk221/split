@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	FileLimit = 677 // 27^2
+	FileLimit = `zz` // 27^2
 )
 
 type CommandOption interface {
@@ -47,6 +47,33 @@ func (s *Splitter) Split() {
 
 }
 
+func largerEqualRunes(a, b []rune) bool {
+	if len(a) != len(b) {
+		log.Fatal("slice lengths do not match")
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] < b[i] {
+			return false
+		} else if a[i] > b[i] {
+			return true
+		}
+	}
+	return true
+}
+
+func incrementString(s string) string {
+	runes := []rune(s)
+	for i := len(runes) - 1; i >= 0; i-- {
+		if runes[i] < 'z' {
+			runes[i]++
+			return string(runes)
+		}
+		runes[i] = 'a'
+	}
+
+	return "a" + string(runes)
+}
+
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
 func (s *Splitter) SplitUsingLineCount() {
@@ -58,13 +85,13 @@ func (s *Splitter) SplitUsingLineCount() {
 	}
 
 	file := s.file
-	partNum := 0
+	partNum := `aa`
 	reader := bufio.NewReader(file)
 	for {
 		if partNum >= FileLimit {
 			log.Fatal("too many files")
 		}
-		partName := fmt.Sprintf("%s%03d", outputPrefix, partNum)
+		partName := fmt.Sprintf("%s%s", outputPrefix, partNum)
 		partFileName := fmt.Sprintf("%s.txt", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
@@ -91,7 +118,7 @@ func (s *Splitter) SplitUsingLineCount() {
 		}
 		_ = partFile.Close()
 
-		partNum++
+		partNum = incrementString(partNum)
 	}
 }
 
@@ -106,7 +133,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 	}
 
 	file := s.file
-	partNum := 0
+	partNum := `aa`
 	reader := bufio.NewReader(file)
 	// 全てのfile内容([]byte)を読み込む
 	content, err := io.ReadAll(reader)
@@ -120,7 +147,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 		if partNum >= FileLimit {
 			log.Fatal("too many files")
 		}
-		partName := fmt.Sprintf("%s%03d", outputPrefix, partNum)
+		partName := fmt.Sprintf("%s%s", outputPrefix, partNum)
 		partFileName := fmt.Sprintf("%s.txt", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
@@ -147,7 +174,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 			log.Fatal(err)
 		}
 
-		partNum++
+		partNum = incrementString(partNum)
 	}
 
 	return
