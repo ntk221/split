@@ -4,6 +4,7 @@ import (
 	"os"
 	"fmt"
 	"flag"
+	"log"
 )
 
 var (
@@ -14,8 +15,17 @@ func main() {
 	flag.Parse()
 
 	fmt.Printf("line_count is %d\n",*line_count)
-	args := os.Args
+	args := flag.Args()
 	fmt.Println(args)
 
-	file := args[1]
+	if len(args) == 0 {
+		log.Fatal("十分な数のコマンドライン引数が与えられていない")
+	}
+
+	fileName := args[0]
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 }
