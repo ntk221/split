@@ -16,4 +16,6 @@ func main() {
 	fmt.Printf("line_count is %d\n",*line_count)
 	args := os.Args
 	fmt.Println(args)
+
+	file := args[1]
 }
