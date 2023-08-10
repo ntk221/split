@@ -28,4 +28,5 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
+	fmt.Println(file)
 }
