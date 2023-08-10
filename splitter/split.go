@@ -39,39 +39,16 @@ func (s *Splitter) Split() {
 		s.SplitUsingChunkCount()
 		return
 	}
+	if option.OptionType() == ByteCount {
+		s.SplitUsingByteCount()
+		return
+	}
 	panic("TODO: option の 種類を判定する実装をする")
 	// option := s.option
 	// if option is chunkCount...
 	// chunkCountが設定されてたら -> splitUsingChunkCount
 	// byteCountが設定されてたら -> splitUsingByteCount
 
-}
-
-func largerEqualRunes(a, b []rune) bool {
-	if len(a) != len(b) {
-		log.Fatal("slice lengths do not match")
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] < b[i] {
-			return false
-		} else if a[i] > b[i] {
-			return true
-		}
-	}
-	return true
-}
-
-func incrementString(s string) string {
-	runes := []rune(s)
-	for i := len(runes) - 1; i >= 0; i-- {
-		if runes[i] < 'z' {
-			runes[i]++
-			return string(runes)
-		}
-		runes[i] = 'a'
-	}
-
-	return "a" + string(runes)
 }
 
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
@@ -178,6 +155,26 @@ func (s *Splitter) SplitUsingChunkCount() {
 	}
 
 	return
+}
+
+func (s *Splitter) SplitUsingByteCount() {
+	panic("TODO: SplitUsingByteCountを実装する")
+}
+
+// 文字列用のincrement関数
+// ex: incrementString("a") == "b"
+// ex: incrementString("az") == "ba"
+func incrementString(s string) string {
+	runes := []rune(s)
+	for i := len(runes) - 1; i >= 0; i-- {
+		if runes[i] < 'z' {
+			runes[i]++
+			return string(runes)
+		}
+		runes[i] = 'a'
+	}
+
+	return "a" + string(runes)
 }
 
 func NewSplitter(option CommandOption, outputPrefix string, file *os.File) *Splitter {
