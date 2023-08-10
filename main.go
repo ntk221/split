@@ -10,10 +10,18 @@ import (
 
 const (
 	DefaultPrefix = "x"
+	Synopsys      = `
+	usage:	split -d [-l line_count] [-a suffix_length] [file [prefix]]
+		split -d -b byte_count[K|k|M|m|G|g] [-a suffix_length] [file [prefix]]
+		split -d -n chunk_count [-a suffix_length] [file [prefix]]
+		split -d -p pattern [-a suffix_length] [file [prefix]]
+	`
 )
 
 var (
-	lineCountOption = flag.Int("l", 1000, "行数を指定してください")
+	lineCountOption  = flag.Int("l", 1000, "行数を指定してください")
+	chunkCountOption = flag.Int("n", 0, "chunkCountを指定してください")
+	// byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
 func split(args []string, file *os.File) {
@@ -22,6 +30,17 @@ func split(args []string, file *os.File) {
 	lineCount := *lineCountOption
 	// chunkCount := *chunkCountOption
 	// byteCount := *byteCountOption
+
+	optionCount := 0
+	flag.VisitAll(func(f *flag.Flag) {
+		if f.Value.String() != f.DefValue {
+			optionCount++
+		}
+	})
+
+	if optionCount > 1 {
+		log.Fatal(Synopsys)
+	}
 
 	partNum := 0
 	outputPrefix := DefaultPrefix
@@ -41,8 +60,9 @@ func main() {
 	args := flag.Args()
 	fmt.Println(args)
 
+	// 今は標準入力から受け取る機能がないが、実装する
 	if len(args) == 0 {
-		log.Fatal("十分な数のコマンドライン引数が与えられていない")
+		log.Fatal("TODO")
 	}
 
 	fileName := args[0]
