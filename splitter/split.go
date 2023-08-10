@@ -12,8 +12,31 @@ const (
 	FileLimit = 677 // 27^2
 )
 
-func SplitUsingLineCount(lineCount int, outputPrefix string, partNum int, file *os.File) {
+type CommandOption interface {
+	OptionType() string
+	IsDefaultValue() bool
+}
 
+type Splitter struct {
+	option       CommandOption
+	outputPrefix string
+	file         *os.File
+}
+
+func (s *Splitter) Split(args []string, file *os.File) {
+	option := s.option
+	_ = option
+	panic("TODO: option の 種類を判定する実装をする")
+	// option := s.option
+	// if option is chunkCount...
+	// chunkCountが設定されてたら -> splitUsingChunkCount
+	// byteCountが設定されてたら -> splitUsingByteCount
+
+}
+
+func (s *Splitter) SplitUsingLineCount(lineCount int, outputPrefix string, file *os.File) {
+
+	partNum := 0
 	reader := bufio.NewReader(file)
 	for {
 		if partNum >= FileLimit {
@@ -47,5 +70,13 @@ func SplitUsingLineCount(lineCount int, outputPrefix string, partNum int, file *
 		_ = partFile.Close()
 
 		partNum++
+	}
+}
+
+func NewSplitter(option CommandOption, outputPrefix string, file *os.File) *Splitter {
+	return &Splitter{
+		option,
+		outputPrefix,
+		file,
 	}
 }
