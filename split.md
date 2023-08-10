@@ -1,3 +1,10 @@
+# SYNOPSIS
+     split -d [-l line_count] [-a suffix_length] [file [prefix]]
+     split -d -b byte_count[K|k|M|m|G|g] [-a suffix_length] [file [prefix]]
+     split -d -n chunk_count [-a suffix_length] [file [prefix]]
+     split -d -p pattern [-a suffix_length] [file [prefix]]
+
+# Description
 The split utility reads the given file and breaks it up into files of 1000 lines each(if no options are specified), leaving the file unchanged, It file is a single dash ('-') or absent, split reads from the standard input.
 
 The options are as follows:
