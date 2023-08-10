@@ -34,7 +34,7 @@ func SplitUsingLineCount(lineCount int, outputPrefix string, partNum int, file *
 					if i == 0 {
 						_ = os.Remove(partFileName)
 					}
-					fmt.Println("ファイル分割が終了しました:", err)
+					fmt.Println("ファイル分割が終了しました")
 					return
 				} else {
 					fmt.Println("行を読み込めませんでした:", err)

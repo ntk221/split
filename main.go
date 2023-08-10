@@ -11,10 +11,9 @@ import (
 const (
 	DefaultPrefix = "x"
 	Synopsys      = `
-	usage:	split -d [-l line_count] [-a suffix_length] [file [prefix]]
-		split -d -b byte_count[K|k|M|m|G|g] [-a suffix_length] [file [prefix]]
-		split -d -n chunk_count [-a suffix_length] [file [prefix]]
-		split -d -p pattern [-a suffix_length] [file [prefix]]
+	usage:	split [-l line_count] [file [prefix]]
+		split -b byte_count[K|k|M|m|G|g] [file [prefix]]
+		split -n chunk_count [file [prefix]]
 	`
 )
 
@@ -24,13 +23,9 @@ var (
 	// byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
-func split(args []string, file *os.File) {
-	// optionによって処理を分岐する
-	flag.Parse()
-	lineCount := *lineCountOption
-	// chunkCount := *chunkCountOption
-	// byteCount := *byteCountOption
-
+// 対応するoptionを-n, -l, -bのみに制限した場合、optionのvalidationについては複数指定されているか否かで判定できる
+// この条件を満たさない場合はvalidationについての実装が異なるので拡張する場合は要変更
+func validateOptions() {
 	optionCount := 0
 	flag.VisitAll(func(f *flag.Flag) {
 		if f.Value.String() != f.DefValue {
@@ -41,6 +36,16 @@ func split(args []string, file *os.File) {
 	if optionCount > 1 {
 		log.Fatal(Synopsys)
 	}
+}
+
+func split(args []string, file *os.File) {
+	// optionによって処理を分岐する
+	flag.Parse()
+	lineCount := *lineCountOption
+	// chunkCount := *chunkCountOption
+	// byteCount := *byteCountOption
+
+	validateOptions()
 
 	partNum := 0
 	outputPrefix := DefaultPrefix
