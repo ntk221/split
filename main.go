@@ -51,6 +51,7 @@ func main() {
 	options := make([]splitter.CommandOption, 0)
 	options = append(options, lineCount)
 	options = append(options, chunkCount)
+	// options = append(options, byteCount)
 
 	// プログラムの引数で指定されたものを選ぶ
 	// validateで適切なoptionだけが残っていることを保証している

@@ -56,8 +56,8 @@ func (s *Splitter) SplitUsingLineCount() {
 	if lineCount.OptionType() != "LineCount" {
 		panic("SplitUsingLineCountがLineCount以外のCommandOptionで呼ばれている")
 	}
-	file := s.file
 
+	file := s.file
 	partNum := 0
 	reader := bufio.NewReader(file)
 	for {
@@ -96,7 +96,60 @@ func (s *Splitter) SplitUsingLineCount() {
 }
 
 func (s *Splitter) SplitUsingChunkCount() {
-	panic("TODO: SplitUsingChunkCountを実装する")
+	const TypeOfChunkCount = "ChunkCount"
+	chunkCount := s.option
+	outputPrefix := s.outputPrefix
+	_ = outputPrefix
+
+	if chunkCount.OptionType() != TypeOfChunkCount {
+		panic("SplitUsingChunkCountがLineCount以外のCommandOptionで呼ばれている")
+	}
+
+	file := s.file
+	partNum := 0
+	reader := bufio.NewReader(file)
+	// 全てのfile内容([]byte)を読み込む
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	chunkSize := len(content) / chunkCount.ConvertToInt()
+
+	for i := 0; i < chunkCount.ConvertToInt(); i++ {
+		if partNum >= FileLimit {
+			log.Fatal("too many files")
+		}
+		partName := fmt.Sprintf("%s%03d", outputPrefix, partNum)
+		partFileName := fmt.Sprintf("%s.txt", partName)
+		partFile, err := os.Create(partFileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// i番目のchunkを特定する
+		start := i * chunkSize
+		end := start + chunkSize
+		// i が n-1番目の時はendをcontentの終端に揃える(manを参照)
+		if i == chunkCount.ConvertToInt()-1 {
+			end = len(content)
+		}
+
+		chunk := content[start:end]
+
+		_, err = partFile.Write(chunk)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = partFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		partNum++
+	}
+
 	return
 }
 
