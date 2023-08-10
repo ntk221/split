@@ -26,23 +26,23 @@ var (
 )
 
 func main() {
+	flag.Parse()
 	args := flag.Args()
 
 	// 今は標準入力から受け取る機能がないが、実装する
-	var file *os.File
+	// var file *os.File
 	if len(args) == 0 {
-		log.Fatal("TODO")
-	} else {
-		fileName := args[0]
-		file, err := os.Open(fileName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer file.Close()
+		log.Fatal("TODO: 標準入力から読み込む機能を実装する")
 	}
 
+	fileName := args[0]
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
 	// optionによって処理を分岐する
-	flag.Parse()
 	lineCount := NewLineCountOption(*lineCountOption)
 	chunkCount := NewChunkCountOption(*chunkCountOption)
 	// byteCount := *byteCountOption
@@ -53,6 +53,7 @@ func main() {
 	options = append(options, chunkCount)
 
 	// プログラムの引数で指定されたものを選ぶ
+	// validateで適切なoptionだけが残っていることを保証している
 	option := selectOption(options)
 	outputPrefix := DefaultPrefix
 	// 引数でprefixが指定されている場合はそれを使う
@@ -61,7 +62,7 @@ func main() {
 	}
 
 	s := splitter.NewSplitter(option, outputPrefix, file)
-	s.Split(args, file)
+	s.Split()
 	return
 }
 
@@ -81,6 +82,7 @@ func validateOptions() {
 }
 
 // プログラムの引数として指定されたoptionを返す
+// 事前条件: すでにoptionsは適切なものが残っていることが保証されている
 func selectOption(options []splitter.CommandOption) splitter.CommandOption {
 	var ret splitter.CommandOption = NewLineCountOption(DefaultLineCount)
 	for _, o := range options {
