@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	FileLimit = `zz` // 27^2
+	FileLimit = "zz" // 27^2
 )
 
 type Splitter struct {
@@ -36,12 +36,7 @@ func (s *Splitter) Split() {
 		s.SplitUsingByteCount()
 		return
 	}
-	panic("TODO: option の 種類を判定する実装をする")
-	// option := s.option
-	// if option is chunkCount...
-	// chunkCountが設定されてたら -> splitUsingChunkCount
-	// byteCountが設定されてたら -> splitUsingByteCount
-
+	panic("意図しないOptionTypeです")
 }
 
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
@@ -55,13 +50,13 @@ func (s *Splitter) SplitUsingLineCount() {
 	}
 
 	file := s.file
-	partNum := `aa`
+	partCount := "aa"
 	reader := bufio.NewReader(file)
 	for {
-		if partNum >= FileLimit {
+		if partCount >= FileLimit {
 			log.Fatal("too many files")
 		}
-		partName := fmt.Sprintf("%s%s", outputPrefix, partNum)
+		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s.txt", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
@@ -88,7 +83,7 @@ func (s *Splitter) SplitUsingLineCount() {
 		}
 		_ = partFile.Close()
 
-		partNum = incrementString(partNum)
+		partCount = incrementString(partCount)
 	}
 }
 
@@ -102,7 +97,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 	}
 
 	file := s.file
-	partNum := `aa`
+	partCount := "aa"
 	reader := bufio.NewReader(file)
 	// 全てのfile内容([]byte)を読み込む
 	content, err := io.ReadAll(reader)
@@ -113,10 +108,10 @@ func (s *Splitter) SplitUsingChunkCount() {
 	chunkSize := len(content) / chunkCount.ConvertToInt()
 
 	for i := 0; i < chunkCount.ConvertToInt(); i++ {
-		if partNum >= FileLimit {
+		if partCount >= FileLimit {
 			log.Fatal("too many files")
 		}
-		partName := fmt.Sprintf("%s%s", outputPrefix, partNum)
+		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s.txt", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
@@ -143,7 +138,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 			log.Fatal(err)
 		}
 
-		partNum = incrementString(partNum)
+		partCount = incrementString(partCount)
 	}
 
 	return

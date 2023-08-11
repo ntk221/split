@@ -1,6 +1,11 @@
-Line 1: This is a sample line of text.
-Line 2: Another line to demonstrate splitting.
-Line 3: Adding more lines for testing purposes.
-Line 4: Each line will be split into separate files.
-Line 5: Last line in the test file.
+Line 1: Hello, World!
+Line 2: This is a sample text file.
+Line 3: It contains 10 lines of text.
+Line 4: Each line is numbered.
+Line 5: This is line number 5.
+Line 6: Only 4 more lines to go.
+Line 7: Line 7 is here.
+Line 8: Just two lines left.
+Line 9: Penultimate line.
+Line 10: The last line of the file.
 
