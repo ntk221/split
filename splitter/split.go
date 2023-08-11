@@ -147,7 +147,52 @@ func (s *Splitter) SplitUsingChunkCount() {
 }
 
 func (s *Splitter) SplitUsingByteCount() {
-	panic("TODO: SplitUsingByteCountを実装する")
+	byteCountOption := s.option
+
+	if byteCountOption.OptionType() != ByteCountType {
+		panic("SplitUsingByteCountがByteCount以外のCommandOptionで呼ばれている")
+	}
+
+	file := s.file
+	outputPrefix := s.outputPrefix
+
+	partCount := "aa"
+	reader := bufio.NewReader(file)
+
+	for {
+		if partCount >= FileLimit {
+			log.Fatal("too many files")
+		}
+
+		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
+		partFileName := fmt.Sprintf("%s.txt", partName)
+		partFile, err := os.Create(partFileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var writtenBytes uint64
+
+		byteCount := byteCountOption.ConvertToNum()
+		for writtenBytes < byteCount {
+			byteRead, err := reader.ReadByte()
+			if err != nil {
+				if err == io.EOF {
+					fmt.Println("ファイル分割が終了しました")
+					return
+				} else {
+					fmt.Println("バイトを読み込めませんでした")
+					log.Fatal(err)
+				}
+			}
+
+			_, _ = partFile.Write([]byte{byteRead})
+			writtenBytes++
+		}
+
+		_ = partFile.Close()
+		partCount = incrementString(partCount)
+	}
 }
 
 // 文字列用のincrement関数

@@ -27,6 +27,8 @@ var (
 	byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
+// プログラムの実行例: ./split -l 2 test.txt
+// flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかったため、 ./split -l2 test.txt のように space を開けない実行が未実装
 func main() {
 	flag.Parse()
 	args := flag.Args()
@@ -52,12 +54,12 @@ func main() {
 	// optionの取得
 	lineCount := NewLineCountOption(*lineCountOption)
 	chunkCount := NewChunkCountOption(*chunkCountOption)
-	// byteCount := NewByteCountOption(*byteCountOption)
+	byteCount := NewByteCountOption(*byteCountOption)
 
 	options := make([]CommandOption, 0)
 	options = append(options, lineCount)
 	options = append(options, chunkCount)
-	// options = append(options, byteCount)
+	options = append(options, byteCount)
 
 	file, err := os.Open(fileName)
 	if err != nil {

@@ -26,7 +26,7 @@ type ByteCountOption int
 
 func NewByteCountOption(s string) ByteCountOption { return parseByteCount(s) }
 func (ByteCountOption) OptionType() int           { return ByteCountType }
-func (b ByteCountOption) IsDefaultValue() bool    { return b != 0 }
+func (b ByteCountOption) IsDefaultValue() bool    { return b == DefaultByteCount }
 func (b ByteCountOption) ConvertToNum() uint64    { return uint64(b) }
 
 func parseByteCount(s string) ByteCountOption {
