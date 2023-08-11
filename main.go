@@ -32,17 +32,28 @@ var (
 func main() {
 	flag.Parse()
 	args := flag.Args()
-	// 今は標準入力から受け取る機能がないが、実装する
-	// var file *os.File
+
+	var file *os.File
 	if len(args) == 0 {
-		log.Fatal("TODO: 標準入力から読み込む機能を実装する")
+		// 標準入力から受け取る
+		file = os.Stdin
+	} else {
+		// ファイル名が指定された場合はファイルを開く
+		fileName := args[0]
+		var err error
+		file, err = os.Open(fileName)
+		if err != nil {
+			if os.IsNotExist(err) {
+				log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
+			}
+			log.Fatal(err)
+		}
+		defer file.Close()
 	}
 
 	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
 	// コマンドライン引数の先頭はオプションであるべきである
 	// 2. ファイル名が指定されていて、かつ、オプション指定されている時には
-	//
-	fileName := args[0]
 	if commandLineArgs := os.Args; len(commandLineArgs) > 2 {
 		first := commandLineArgs[1]
 		if first != "-l" && first != "-n" && first != "-b" {
@@ -60,15 +71,6 @@ func main() {
 	options = append(options, lineCount)
 	options = append(options, chunkCount)
 	options = append(options, byteCount)
-
-	file, err := os.Open(fileName)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
-		}
-		log.Fatal(err)
-	}
-	defer file.Close()
 
 	// プログラムの引数で指定されたものを選ぶ
 	// validateで適切なoptionだけが残っていることを保証している
