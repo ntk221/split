@@ -63,7 +63,8 @@ func (s *Splitter) SplitUsingLineCount() {
 			log.Fatal(err)
 		}
 
-		for i := 0; i < lineCount.ConvertToInt(); i++ {
+		var i uint64
+		for i = 0; i < lineCount.ConvertToNum(); i++ {
 			line, err := reader.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
@@ -105,9 +106,10 @@ func (s *Splitter) SplitUsingChunkCount() {
 		log.Fatal(err)
 	}
 
-	chunkSize := len(content) / chunkCount.ConvertToInt()
+	chunkSize := uint64(len(content)) / chunkCount.ConvertToNum()
 
-	for i := 0; i < chunkCount.ConvertToInt(); i++ {
+	var i uint64
+	for i = 0; i < chunkCount.ConvertToNum(); i++ {
 		if partCount >= FileLimit {
 			log.Fatal("too many files")
 		}
@@ -122,8 +124,8 @@ func (s *Splitter) SplitUsingChunkCount() {
 		start := i * chunkSize
 		end := start + chunkSize
 		// i が n-1番目の時はendをcontentの終端に揃える(manを参照)
-		if i == chunkCount.ConvertToInt()-1 {
-			end = len(content)
+		if i == chunkCount.ConvertToNum()-1 {
+			end = uint64(len(content))
 		}
 
 		chunk := content[start:end]

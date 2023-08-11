@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/ntk221/split/splitter"
 	"log"
 	"os"
-	"fmt"
 
 	. "github.com/ntk221/split/commandOption"
 )
@@ -17,7 +17,7 @@ const (
 		split -b byte_count[K|k|M|m|G|g] [file [prefix]]
 		split -n chunk_count [file [prefix]]`
 	DefaultChunkCount = 0
-	DefaultByteCount  = ""
+	DefaultByteCount  = 0
 	DefaultLineCount  = 1000
 )
 
@@ -39,11 +39,11 @@ func main() {
 	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
 	// コマンドライン引数の先頭はオプションであるべきである
 	// 2. ファイル名が指定されていて、かつ、オプション指定されている時には
-	// 
+	//
 	fileName := args[0]
-	if commandLineArgs := os.Args; len(commandLineArgs) > 1 {
-		first := commandLineArgs[0]
-		if first != "-l" || first != "-n" || first != "-b" {
+	if commandLineArgs := os.Args; len(commandLineArgs) > 2 {
+		first := commandLineArgs[1]
+		if first != "-l" && first != "-n" && first != "-b" {
 			log.Fatal(Synopsys)
 		}
 		validateOptions()
@@ -52,19 +52,18 @@ func main() {
 	// optionの取得
 	lineCount := NewLineCountOption(*lineCountOption)
 	chunkCount := NewChunkCountOption(*chunkCountOption)
-	// byteCount := *byteCountOption
+	// byteCount := NewByteCountOption(*byteCountOption)
 
 	options := make([]CommandOption, 0)
 	options = append(options, lineCount)
 	options = append(options, chunkCount)
 	// options = append(options, byteCount)
 
-
 	file, err := os.Open(fileName)
 	if err != nil {
-		if os.IsNotExist(err){
+		if os.IsNotExist(err) {
 			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
-		} 
+		}
 		log.Fatal(err)
 	}
 	defer file.Close()

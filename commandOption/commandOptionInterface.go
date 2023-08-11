@@ -9,5 +9,5 @@ const (
 type CommandOption interface {
 	OptionType() int
 	IsDefaultValue() bool
-	ConvertToInt() int
+	ConvertToNum() uint64
 }
