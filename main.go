@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"github.com/ntk221/split/splitter"
 	"log"
-	"net/http"
 	"os"
+	"os/exec"
+	"strings"
 
 	. "github.com/ntk221/split/commandOption"
 )
@@ -91,29 +92,18 @@ func readyFile(args []string) (*os.File, func()) {
 	return file, func() { file.Close() }
 }
 
-// http.DetectContentType を呼び出してファイルの種類を特定し、
-// textファイルかapplication/octet-stream(DetectContentTypeのデフォルトの値)でない時にプログラムを終了する
+// file コマンドを使ってsplitするファイルがtextファイルであるか否かを判定する
 func detectFileType(file *os.File) {
-	defer func() {
-		// 処理が終了したら元の位置に戻す
-		_, err := file.Seek(0, 0)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
+	cmd := exec.Command("file", "-")
+	cmd.Stdin = file
 
-	// http.DetectContentType で file type を特定するには, 最大で512バイト必要になる
-	// 参考url: https://pkg.go.dev/net/http#DetectContentType
-	buf := make([]byte, 512)
-	_, err := file.Read(buf)
+	output, err := cmd.Output()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fileType := http.DetectContentType(buf)
-
-	if fileType != "application/octet-stream" && fileType[:5] != "text/" {
-		log.Fatal("このプログラムは、textファイルのみを入力として受け取ります")
+	if !strings.Contains(string(output), "text") {
+		log.Fatal(`このプログラムは、textファイルのみを入力として受け取ります`)
 	}
 }
 
