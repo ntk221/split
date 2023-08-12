@@ -39,6 +39,19 @@ func (s *Splitter) Split() {
 	panic("意図しないOptionTypeです")
 }
 
+func deletePartFile(outputPrefix string) {
+	partCount := "aa"
+	for partCount < FileLimit {
+		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
+		partFileName := fmt.Sprintf("%s", partName)
+		err := os.Remove(partFileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		partCount = incrementString(partCount)
+	}
+}
+
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
 func (s *Splitter) SplitUsingLineCount() {
@@ -54,6 +67,7 @@ func (s *Splitter) SplitUsingLineCount() {
 	reader := bufio.NewReader(file)
 	for {
 		if partCount >= FileLimit {
+			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
@@ -113,6 +127,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 	var i uint64
 	for i = 0; i < chunkCount; i++ {
 		if partCount >= FileLimit {
+			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
@@ -163,6 +178,7 @@ func (s *Splitter) SplitUsingByteCount() {
 
 	for {
 		if partCount >= FileLimit {
+			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 
