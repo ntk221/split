@@ -26,7 +26,7 @@ func TestSplitUsingLineCount(t *testing.T) {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
 
-	s := splitter.NewSplitter(option, outputPrefix, testFile)
+	s := splitter.NewSplitter(option, outputPrefix, file, func { return os.Create() })
 	s.SplitUsingLineCount()
 }
 

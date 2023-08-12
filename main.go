@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ntk221/split/splitter"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -49,7 +50,6 @@ func main() {
 		validateOptions()
 	}
 
-	// optionの取得
 	lineCount := NewLineCountOption(*lineCountOption)
 	chunkCount := NewChunkCountOption(*chunkCountOption)
 	byteCount := NewByteCountOption(*byteCountOption)
@@ -67,9 +67,23 @@ func main() {
 		outputPrefix = args[1]
 	}
 
-	s := splitter.NewSplitter(option, outputPrefix, file)
+	createFunc := &FileCreator{}
+	fileCreator := struct {
+		splitter.Creator
+	}{
+		Creator: createFunc,
+	}
+	s := splitter.NewSplitter(option, outputPrefix, file, fileCreator)
 	s.Split()
 	return
+}
+
+// FileCreator はos.Create()のラッパーを定義しただけのからの構造体
+// 単体テスト時にMockに差し替えることを可能にするためだけに定義している
+type FileCreator struct{}
+
+func (fc *FileCreator) Create(name string) (io.WriteCloser, error) {
+	return os.Create(name)
 }
 
 // コマンドライン引数でファイル名を指定された場合はそれをオープンして返す

@@ -16,10 +16,15 @@ const (
 	FileLimit = "zz"
 )
 
+type Creator interface {
+	Create(name string) (io.WriteCloser, error)
+}
+
 type Splitter struct {
 	option       CommandOption
 	outputPrefix string
 	file         io.Reader
+	fileCreator  Creator
 }
 
 func (s *Splitter) Split() {
@@ -60,22 +65,24 @@ func (s *Splitter) SplitUsingLineCount() {
 			log.Fatal("too many files")
 		}
 
+		// ファイルの作成処理
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := os.Create(partFileName)
+		partFile, err := s.fileCreator.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		var i uint64
 		lineCount := lineCountOption.ConvertToNum()
+		// ファイル内容の分割処理
 		for i = 0; i < lineCount; i++ {
-			line, err := reader.ReadString('\n')
+			line, err := reader.ReadBytes('\n')
 			if err != nil {
 				if err == io.EOF {
 					// 一度も読み込めない時はCreateしたファイルを消す
 					if i == 0 {
-						_ = os.Remove(partFileName)
+						_ = partFile.Close()
 					}
 					// fmt.Println("ファイル分割が終了しました")
 					return
@@ -85,7 +92,8 @@ func (s *Splitter) SplitUsingLineCount() {
 				}
 			}
 
-			_, err = partFile.WriteString(line)
+			// 分割した内容の書き込み処理
+			_, err = partFile.Write(line)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -128,7 +136,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := os.Create(partFileName)
+		partFile, err := s.fileCreator.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -181,7 +189,7 @@ func (s *Splitter) SplitUsingByteCount() {
 
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := os.Create(partFileName)
+		partFile, err := s.fileCreator.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -269,10 +277,11 @@ func deletePartFile(outputPrefix string) {
 	}
 }
 
-func NewSplitter(option CommandOption, outputPrefix string, file *os.File) *Splitter {
+func NewSplitter(option CommandOption, outputPrefix string, file *os.File, fileCreator Creator) *Splitter {
 	return &Splitter{
 		option,
 		outputPrefix,
 		file,
+		fileCreator,
 	}
 }
