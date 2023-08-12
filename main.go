@@ -54,7 +54,7 @@ func main() {
 	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
 	// コマンドライン引数の先頭はオプションであるべきである
 	// 2. ファイル名が指定されていて、かつ、オプション指定されている時には
-	if commandLineArgs := os.Args; len(commandLineArgs) > 2 {
+	if commandLineArgs := os.Args; len(commandLineArgs) > 2 && len(args) < 2 {
 		first := commandLineArgs[1]
 		if first != "-l" && first != "-n" && first != "-b" {
 			log.Fatal(Synopsys)

@@ -57,7 +57,7 @@ func (s *Splitter) SplitUsingLineCount() {
 			log.Fatal("too many files")
 		}
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s.txt", partName)
+		partFileName := fmt.Sprintf("%s", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
@@ -116,7 +116,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 			log.Fatal("too many files")
 		}
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s.txt", partName)
+		partFileName := fmt.Sprintf("%s", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
@@ -167,7 +167,7 @@ func (s *Splitter) SplitUsingByteCount() {
 		}
 
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s.txt", partName)
+		partFileName := fmt.Sprintf("%s", partName)
 		partFile, err := os.Create(partFileName)
 		if err != nil {
 			log.Fatal(err)
@@ -188,6 +188,11 @@ func (s *Splitter) SplitUsingByteCount() {
 			if err != nil {
 				if err == io.EOF {
 					// fmt.Println("ファイル分割が終了しました")
+					// 1バイトも書き込めなかった場合はファイルを消す
+					if writtenBytes == 0 {
+						_ = os.Remove(partFileName)
+						return
+					}
 					return
 				} else {
 					fmt.Println("バイトを読み込めませんでした")
