@@ -1,7 +1,5 @@
 package splitter
 
-import "os"
-
 // splitter は splitコマンドの仕様にしたがって、file を分割する処理を担当する
 // Splitメソッドの実装中に現れる個々のヘルパーメソッドに関しては本パッケージの下部を参照してください
 
@@ -11,6 +9,7 @@ import (
 	. "github.com/ntk221/split/commandOption"
 	"io"
 	"log"
+	"os"
 )
 
 const (
@@ -20,7 +19,7 @@ const (
 type Splitter struct {
 	option       CommandOption
 	outputPrefix string
-	file         *os.File
+	file         io.Reader
 }
 
 func (s *Splitter) Split() {
@@ -60,6 +59,7 @@ func (s *Splitter) SplitUsingLineCount() {
 			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
+
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s", partName)
 		partFile, err := os.Create(partFileName)
@@ -111,7 +111,6 @@ func (s *Splitter) SplitUsingChunkCount() {
 	file := s.file
 	partCount := "aa"
 	reader := bufio.NewReader(file)
-	// 全てのfile内容([]byte)を読み込む
 	content, err := io.ReadAll(reader)
 	if err != nil {
 		log.Fatal(err)
@@ -126,6 +125,7 @@ func (s *Splitter) SplitUsingChunkCount() {
 			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
+
 		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
 		partFileName := fmt.Sprintf("%s", partName)
 		partFile, err := os.Create(partFileName)
@@ -136,7 +136,8 @@ func (s *Splitter) SplitUsingChunkCount() {
 		// i番目のchunkを特定する
 		start := i * chunkSize
 		end := start + chunkSize
-		// i が n-1番目の時はendをcontentの終端に揃える(manを参照)
+
+		// i が n-1番目の時(最後のchunkの時)はendをcontentの終端に揃える(manを参照)
 		if i == chunkCount-1 {
 			end = uint64(len(content))
 		}
@@ -192,6 +193,8 @@ func (s *Splitter) SplitUsingByteCount() {
 		buf := make([]byte, bufSize)
 		for writtenBytes < byteCount {
 			readSize := bufSize
+			// 今回bufferのサイズ分読み込んだらbyteCountをオーバーする時
+			// optionで指定されたbyteCount - これまで読み込んだバイト数だけ読めばいい
 			if writtenBytes+readSize > byteCount {
 				readSize = byteCount - writtenBytes
 			}
