@@ -16,9 +16,6 @@ const (
 	usage:	split [-l line_count] [file [prefix]]
 		split -b byte_count[K|k|M|m|G|g] [file [prefix]]
 		split -n chunk_count [file [prefix]]`
-	DefaultChunkCount = 0
-	DefaultByteCount  = 0
-	DefaultLineCount  = 1000
 )
 
 var (

@@ -1,7 +1,6 @@
-package main
+package commandOption
 
 import (
-	. "github.com/ntk221/split/commandOption"
 	"log"
 	"regexp"
 	"strconv"
@@ -34,7 +33,6 @@ func parseByteCount(s string) ByteCountOption {
 	match := pattern.FindStringSubmatch(s)
 	if match == nil {
 		return DefaultByteCount
-		log.Fatal("Invalid byte count format")
 	}
 
 	valueStr := match[1]

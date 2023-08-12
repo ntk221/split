@@ -1,13 +1,16 @@
 package splitter
 
+import "os"
+
+// splitter は splitコマンドの仕様にしたがって、file を分割する処理を担当する
+// Splitメソッドの実装中に現れる個々のヘルパーメソッドに関しては本パッケージの下部を参照してください
+
 import (
 	"bufio"
 	"fmt"
+	. "github.com/ntk221/split/commandOption"
 	"io"
 	"log"
-	"os"
-
-	. "github.com/ntk221/split/commandOption"
 )
 
 const (
@@ -37,19 +40,6 @@ func (s *Splitter) Split() {
 		return
 	}
 	panic("意図しないOptionTypeです")
-}
-
-func deletePartFile(outputPrefix string) {
-	partCount := "aa"
-	for partCount < FileLimit {
-		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s", partName)
-		err := os.Remove(partFileName)
-		if err != nil {
-			log.Fatal(err)
-		}
-		partCount = incrementString(partCount)
-	}
 }
 
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
@@ -249,6 +239,19 @@ func incrementString(s string) string {
 	}
 
 	return "a" + string(runes)
+}
+
+func deletePartFile(outputPrefix string) {
+	partCount := "aa"
+	for partCount < FileLimit {
+		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
+		partFileName := fmt.Sprintf("%s", partName)
+		err := os.Remove(partFileName)
+		if err != nil {
+			log.Fatal(err)
+		}
+		partCount = incrementString(partCount)
+	}
 }
 
 func NewSplitter(option CommandOption, outputPrefix string, file *os.File) *Splitter {
