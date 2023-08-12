@@ -37,9 +37,8 @@ func main() {
 	defer closeFile()
 	detectFileType(file)
 
-	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
+	// 1. ファイル名が指定されていて、かつ、オプション指定されていて、出力ファイルのprefixが指定されていない時
 	// コマンドライン引数の先頭はオプションであるべきである
-	// 2. ファイル名が指定されていて、かつ、オプション指定されている時には
 	if commandLineArgs := os.Args; len(commandLineArgs) > 2 && len(args) < 2 {
 		first := commandLineArgs[1]
 		if first != "-l" && first != "-n" && first != "-b" {
