@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ntk221/split/splitter"
+	"io"
 	"log"
+	"net/http"
 	"os"
 
 	. "github.com/ntk221/split/commandOption"
@@ -24,6 +26,34 @@ var (
 	byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
+func detectFileType(file *os.File) {
+	initialPos, err := file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return
+	}
+	defer func() {
+		// 処理が終了したら元の位置に戻す
+		_, err := file.Seek(initialPos, io.SeekStart)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// http.DetectContentType で file type を特定するには, 最大で512バイト必要になる
+	// 参考url: https://pkg.go.dev/net/http#DetectContentType
+	buf := make([]byte, 512)
+	_, err = file.Read(buf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fileType := http.DetectContentType(buf)
+
+	if fileType != "application/octet-stream" && fileType[:5] != "text/" {
+		log.Fatal("このプログラムは、textファイルのみを入力として受け取ります")
+	}
+}
+
 // プログラムの実行例: ./split -l 2 test.txt
 // flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかったため、 ./split -l2 test.txt のように space を開けない実行が未実装
 func main() {
@@ -38,7 +68,7 @@ func main() {
 		// ファイル名が指定された場合はファイルを開く
 		fileName := args[0]
 		var err error
-		file, err = os.Open(fileName)
+		file, err = os.OpenFile(fileName, os.O_RDONLY, 0666)
 		if err != nil {
 			if os.IsNotExist(err) {
 				log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
@@ -47,6 +77,8 @@ func main() {
 		}
 		defer file.Close()
 	}
+
+	detectFileType(file)
 
 	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
 	// コマンドライン引数の先頭はオプションであるべきである
