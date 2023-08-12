@@ -25,51 +25,10 @@ var (
 	byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
-func detectFileType(file *os.File) {
-	defer func() {
-		// 処理が終了したら元の位置に戻す
-		_, err := file.Seek(0, 0)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	// http.DetectContentType で file type を特定するには, 最大で512バイト必要になる
-	// 参考url: https://pkg.go.dev/net/http#DetectContentType
-	buf := make([]byte, 512)
-	_, err := file.Read(buf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fileType := http.DetectContentType(buf)
-
-	if fileType != "application/octet-stream" && fileType[:5] != "text/" {
-		log.Fatal("このプログラムは、textファイルのみを入力として受け取ります")
-	}
-}
-
-func readyFile(args []string) (*os.File, func()) {
-	if len(args) == 0 {
-		// 標準入力から受け取る
-		return os.Stdin, func() {}
-	}
-
-	fileName := args[0]
-	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
-	if err != nil {
-		if os.IsNotExist(err) {
-			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
-		}
-		log.Fatal(err)
-		return nil, func() {}
-	}
-
-	return file, func() { file.Close() }
-}
-
 // プログラムの実行例: ./split -l 2 test.txt
 // flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかったため、 ./split -l2 test.txt のように space を開けない実行が未実装
+// textファイルではない入力に関して実験をしたが、splitコマンドと挙動が揃わず、man にもそれについて説明がなかったので
+// 本プログラムの仕様として、text ファイル以外の入力を受け取らないようにした
 func main() {
 	flag.Parse()
 	args := flag.Args()
@@ -111,6 +70,52 @@ func main() {
 	s := splitter.NewSplitter(option, outputPrefix, file)
 	s.Split()
 	return
+}
+
+// コマンドライン引数でファイル名を指定された場合はそれをオープンして返す
+// コマンドライン引数が指定されない場合は、標準入力から受け取る
+func readyFile(args []string) (*os.File, func()) {
+	if len(args) == 0 {
+		return os.Stdin, func() {}
+	}
+
+	fileName := args[0]
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
+		}
+		log.Fatal(err)
+		return nil, func() {}
+	}
+
+	return file, func() { file.Close() }
+}
+
+// http.DetectContentType を呼び出してファイルの種類を特定し、
+// textファイルかapplication/octet-stream(DetectContentTypeのデフォルトの値)でない時にプログラムを終了する
+func detectFileType(file *os.File) {
+	defer func() {
+		// 処理が終了したら元の位置に戻す
+		_, err := file.Seek(0, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// http.DetectContentType で file type を特定するには, 最大で512バイト必要になる
+	// 参考url: https://pkg.go.dev/net/http#DetectContentType
+	buf := make([]byte, 512)
+	_, err := file.Read(buf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fileType := http.DetectContentType(buf)
+
+	if fileType != "application/octet-stream" && fileType[:5] != "text/" {
+		log.Fatal("このプログラムは、textファイルのみを入力として受け取ります")
+	}
 }
 
 // 対応するoptionを-n, -l, -bのみに制限した場合、optionのvalidationについては複数指定されているか否かで判定できる
