@@ -85,9 +85,15 @@ func (s *Splitter) SplitUsingLineCount() {
 				}
 			}
 
-			_, _ = partFile.WriteString(line)
+			_, err = partFile.WriteString(line)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
-		_ = partFile.Close()
+		err = partFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		partCount = incrementString(partCount)
 	}
@@ -205,11 +211,17 @@ func (s *Splitter) SplitUsingByteCount() {
 					log.Fatal(err)
 				}
 			}
-			_, _ = partFile.Write(buf[:n])
+			_, err = partFile.Write(buf[:n])
+			if err != nil {
+				log.Fatal(err)
+			}
 			writtenBytes += uint64(n)
 		}
 
-		_ = partFile.Close()
+		err = partFile.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 		partCount = incrementString(partCount)
 	}
 }
