@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ntk221/split/splitter"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -27,13 +26,9 @@ var (
 )
 
 func detectFileType(file *os.File) {
-	initialPos, err := file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return
-	}
 	defer func() {
 		// 処理が終了したら元の位置に戻す
-		_, err := file.Seek(initialPos, io.SeekStart)
+		_, err := file.Seek(0, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -42,7 +37,7 @@ func detectFileType(file *os.File) {
 	// http.DetectContentType で file type を特定するには, 最大で512バイト必要になる
 	// 参考url: https://pkg.go.dev/net/http#DetectContentType
 	buf := make([]byte, 512)
-	_, err = file.Read(buf)
+	_, err := file.Read(buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,30 +49,33 @@ func detectFileType(file *os.File) {
 	}
 }
 
+func readyFile(args []string) (*os.File, func()) {
+	if len(args) == 0 {
+		// 標準入力から受け取る
+		return os.Stdin, func() {}
+	}
+
+	fileName := args[0]
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
+		}
+		log.Fatal(err)
+		return nil, func() {}
+	}
+
+	return file, func() { file.Close() }
+}
+
 // プログラムの実行例: ./split -l 2 test.txt
 // flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかったため、 ./split -l2 test.txt のように space を開けない実行が未実装
 func main() {
 	flag.Parse()
 	args := flag.Args()
 
-	var file *os.File
-	if len(args) == 0 {
-		// 標準入力から受け取る
-		file = os.Stdin
-	} else {
-		// ファイル名が指定された場合はファイルを開く
-		fileName := args[0]
-		var err error
-		file, err = os.OpenFile(fileName, os.O_RDONLY, 0666)
-		if err != nil {
-			if os.IsNotExist(err) {
-				log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
-			}
-			log.Fatal(err)
-		}
-		defer file.Close()
-	}
-
+	file, closeFile := readyFile(args)
+	defer closeFile()
 	detectFileType(file)
 
 	// 1. ファイル名が指定されていて、かつ、オプション指定されている時には
