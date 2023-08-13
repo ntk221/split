@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ntk221/split/splitter"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -82,7 +81,7 @@ func main() {
 // 単体テスト時にMockに差し替えることを可能にするためだけに定義している
 type FileCreator struct{}
 
-func (fc *FileCreator) Create(name string) (io.WriteCloser, error) {
+func (fc *FileCreator) Create(name string) (splitter.StringWriteCloser, error) {
 	return os.Create(name)
 }
 

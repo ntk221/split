@@ -16,8 +16,13 @@ const (
 	FileLimit = "zz"
 )
 
+type StringWriteCloser interface {
+	io.WriteCloser
+	io.StringWriter
+}
+
 type Creator interface {
-	Create(name string) (io.WriteCloser, error)
+	Create(name string) (StringWriteCloser, error)
 }
 
 type Splitter struct {
@@ -77,13 +82,10 @@ func (s *Splitter) SplitUsingLineCount() {
 		lineCount := lineCountOption.ConvertToNum()
 		// ファイル内容の分割処理
 		for i = 0; i < lineCount; i++ {
-			line, err := reader.ReadBytes('\n')
+			line, err := reader.ReadString('\n')
 			if err != nil {
 				if err == io.EOF {
-					// 一度も読み込めない時はCreateしたファイルを消す
-					if i == 0 {
-						_ = partFile.Close()
-					}
+					_ = partFile.Close()
 					// fmt.Println("ファイル分割が終了しました")
 					return
 				} else {
@@ -93,7 +95,7 @@ func (s *Splitter) SplitUsingLineCount() {
 			}
 
 			// 分割した内容の書き込み処理
-			_, err = partFile.Write(line)
+			_, err = partFile.WriteString(line)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -151,6 +153,12 @@ func (s *Splitter) SplitUsingChunkCount() {
 		}
 
 		chunk := content[start:end]
+
+		// i番目のchunkがすでにからの時は終了する
+		if !(len(chunk) > 0) {
+			_ = os.Remove(partFileName)
+			return
+		}
 
 		_, err = partFile.Write(chunk)
 		if err != nil {
@@ -277,7 +285,11 @@ func deletePartFile(outputPrefix string) {
 	}
 }
 
-func NewSplitter(option CommandOption, outputPrefix string, file *os.File, fileCreator Creator) *Splitter {
+func NewSplitter(option CommandOption, outputPrefix string, file io.Reader, fileCreator Creator) *Splitter {
+	if file == nil {
+		panic("splitterの初期化時にfileにnilが入ってきている")
+	}
+
 	return &Splitter{
 		option,
 		outputPrefix,
