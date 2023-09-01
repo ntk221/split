@@ -66,23 +66,25 @@ func main() {
 		outputPrefix = args[1]
 	}
 
-	createFunc := &FileCreator{}
-	fileCreator := struct {
-		splitter.Creator
-	}{
-		Creator: createFunc,
+	var createFunc FileCreator
+	createFunc = func(fileName string) (splitter.StringWriteCloser, error) {
+		file, err := os.Create(fileName)
+		if err != nil {
+			return nil, err
+		}
+		return file, nil
 	}
-	s := splitter.NewSplitter(option, outputPrefix, file, fileCreator)
+	s := splitter.NewSplitter(option, outputPrefix, file, createFunc)
 	s.Split()
 	return
 }
 
-// FileCreator はos.Create()のラッパーを定義しただけのからの構造体
-// 単体テスト時にMockに差し替えることを可能にするためだけに定義している
-type FileCreator struct{}
+// 文字列を書き込み、閉じることができるファイルを作る関数型
+// 単体テスト時にMockに差し替えることを可能にする
+type FileCreator func(name string) (splitter.StringWriteCloser, error)
 
-func (fc *FileCreator) Create(name string) (splitter.StringWriteCloser, error) {
-	return os.Create(name)
+func (fc FileCreator) Create(name string) (splitter.StringWriteCloser, error) {
+	return fc(name)
 }
 
 // コマンドライン引数でファイル名を指定された場合はそれをオープンして返す
