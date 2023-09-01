@@ -74,8 +74,8 @@ func main() {
 		}
 		return file, nil
 	}
-	s := splitter.NewSplitter(option, outputPrefix, file, createFunc)
-	s.Split()
+	s := splitter.New(option, outputPrefix, createFunc)
+	s.Split(file)
 	return
 }
 

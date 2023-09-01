@@ -28,24 +28,26 @@ type Creator interface {
 type Splitter struct {
 	option       CommandOption
 	outputPrefix string
-	file         io.Reader
 	fileCreator  Creator
 }
 
-func (s *Splitter) Split() {
+func (s *Splitter) Split(file io.Reader) {
+	if file == nil {
+		panic("Splitの呼び出し時のfileにnilが入ってきている")
+	}
 
 	option := s.option
 	_ = option
 	if option.OptionType() == LineCountType {
-		s.SplitUsingLineCount()
+		s.splitUsingLineCount(file)
 		return
 	}
 	if option.OptionType() == ChunkCountType {
-		s.SplitUsingChunkCount()
+		s.splitUsingChunkCount(file)
 		return
 	}
 	if option.OptionType() == ByteCountType {
-		s.SplitUsingByteCount()
+		s.splitUsingByteCount(file)
 		return
 	}
 	panic("意図しないOptionTypeです")
@@ -53,7 +55,7 @@ func (s *Splitter) Split() {
 
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
-func (s *Splitter) SplitUsingLineCount() {
+func (s *Splitter) splitUsingLineCount(file io.Reader) {
 	lineCountOption := s.option
 	outputPrefix := s.outputPrefix
 
@@ -61,7 +63,6 @@ func (s *Splitter) SplitUsingLineCount() {
 		panic("SplitUsingLineCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
-	file := s.file
 	partCount := "aa"
 	reader := bufio.NewReader(file)
 	for {
@@ -109,7 +110,7 @@ func (s *Splitter) SplitUsingLineCount() {
 	}
 }
 
-func (s *Splitter) SplitUsingChunkCount() {
+func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 	chunkCountOption := s.option
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
@@ -118,7 +119,6 @@ func (s *Splitter) SplitUsingChunkCount() {
 		panic("SplitUsingChunkCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
-	file := s.file
 	partCount := "aa"
 	reader := bufio.NewReader(file)
 	content, err := io.ReadAll(reader)
@@ -176,14 +176,13 @@ func (s *Splitter) SplitUsingChunkCount() {
 	return
 }
 
-func (s *Splitter) SplitUsingByteCount() {
+func (s *Splitter) splitUsingByteCount(file io.Reader) {
 	byteCountOption := s.option
 
 	if byteCountOption.OptionType() != ByteCountType {
 		panic("SplitUsingByteCountがByteCount以外のCommandOptionで呼ばれている")
 	}
 
-	file := s.file
 	outputPrefix := s.outputPrefix
 
 	partCount := "aa"
@@ -285,15 +284,10 @@ func deletePartFile(outputPrefix string) {
 	}
 }
 
-func NewSplitter(option CommandOption, outputPrefix string, file io.Reader, fileCreator Creator) *Splitter {
-	if file == nil {
-		panic("splitterの初期化時にfileにnilが入ってきている")
-	}
-
+func New(option CommandOption, outputPrefix string, fileCreator Creator) *Splitter {
 	return &Splitter{
 		option,
 		outputPrefix,
-		file,
 		fileCreator,
 	}
 }
