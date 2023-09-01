@@ -27,10 +27,14 @@ var (
 )
 
 // プログラムの実行例: ./split -l 2 test.txt
-// flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかったため、 ./split -l2 test.txt のように space を開けない実行が未実装
-// textファイルではない入力に関して実験をしたが、splitコマンドと挙動が揃わず、man にもそれについて説明がなかったので、本プログラムの仕様として、text ファイル以外の入力を受け取らないようにした
-// textファイルは file コマンドで text として判定されるファイルとしている
-// この判定に file コマンドを使用しているのでこのプログラムはfileコマンドが使える環境でなくては動作しない
+//
+// flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかった
+// よって ./split -l2 test.txt のように space を開けない実行が未実装にした
+//
+// textファイルではない入力に関する挙動について man にはそれについて説明がなかった
+// よって、本プログラムの仕様として、text ファイル以外の入力を受け取らないようにした
+//
+// text ファイルの判定に file コマンドを使用しているのでこのプログラムはfileコマンドが使える環境でなくては動作しない
 func main() {
 	flag.Parse()
 	args := flag.Args()

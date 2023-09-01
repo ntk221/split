@@ -16,11 +16,13 @@ const (
 	FileLimit = "zz"
 )
 
+// 書き込み先のfileを抽象化したinterface
 type StringWriteCloser interface {
 	io.WriteCloser
 	io.StringWriter
 }
 
+// 書き込み先のfileを生成する処理を抽象化したinteface
 type Creator interface {
 	Create(name string) (StringWriteCloser, error)
 }
@@ -37,7 +39,6 @@ func (s *Splitter) Split(file io.Reader) {
 	}
 
 	option := s.option
-	_ = option
 	if option.OptionType() == LineCountType {
 		s.splitUsingLineCount(file)
 		return
@@ -87,7 +88,6 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 			if err != nil {
 				if err == io.EOF {
 					_ = partFile.Close()
-					// fmt.Println("ファイル分割が終了しました")
 					return
 				} else {
 					fmt.Println("行を読み込めませんでした")
