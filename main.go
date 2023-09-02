@@ -41,29 +41,27 @@ func main() {
 
 	file, closeFile := readyFile(args)
 	defer closeFile()
-	detectFileType(file)
+	if ok := detectFileType(file); !ok {
+		log.Fatal("指定されたファイルはtextファイルではありません")
+	}
 
-	// 1. ファイル名が指定されていて、かつ、オプション指定されていて、出力ファイルのprefixが指定されていない時
-	// コマンドライン引数の先頭はオプションであるべきである
+	// 1. ファイル名が指定されている
+	// 2. オプション指定されている
+	// 3. 出力ファイルのprefixは指定されていない
+	// 以上の条件を満たす時、コマンドライン引数の先頭はオプションであるべきである
 	if commandLineArgs := os.Args; len(commandLineArgs) > 2 && len(args) < 2 {
 		first := commandLineArgs[1]
 		if first != "-l" && first != "-n" && first != "-b" {
 			log.Fatal(Synopsys)
 		}
-		validateOptions()
+		if ok := validateOptions(); !ok {
+			log.Fatal(Synopsys)
+		}
 	}
 
-	lineCount := NewLineCountOption(*lineCountOption)
-	chunkCount := NewChunkCountOption(*chunkCountOption)
-	byteCount := NewByteCountOption(*byteCountOption)
-	options := make([]CommandOption, 0)
-	options = append(options, lineCount)
-	options = append(options, chunkCount)
-	options = append(options, byteCount)
-
-	// プログラムの引数で指定されたものを選ぶ
-	// validateで適切なoptionだけが残っていることを保証している
+	options := []CommandOption{NewLineCountOption(*lineCountOption), NewChunkCountOption(*chunkCountOption), NewByteCountOption(*byteCountOption)}
 	option := selectOption(options)
+
 	outputPrefix := DefaultPrefix
 	// 引数でprefixが指定されている場合はそれを使う
 	if len(args) > 1 {
@@ -105,14 +103,13 @@ func readyFile(args []string) (*os.File, func()) {
 			log.Fatal(fmt.Sprintf("split: %s: no such file or directory", fileName))
 		}
 		log.Fatal(err)
-		return nil, func() {}
 	}
 
 	return file, func() { file.Close() }
 }
 
 // file コマンドを使ってsplitするファイルがtextファイルであるか否かを判定する
-func detectFileType(file *os.File) {
+func detectFileType(file *os.File) bool {
 	cmd := exec.Command("file", "-")
 	cmd.Stdin = file
 
@@ -122,13 +119,14 @@ func detectFileType(file *os.File) {
 	}
 
 	if !strings.Contains(string(output), "text") {
-		log.Fatal(`このプログラムは、textファイルのみを入力として受け取ります`)
+		return false
 	}
+	return true
 }
 
 // 対応するoptionを-n, -l, -bのみに制限した場合、optionのvalidationについては複数指定されているか否かで判定できる
 // この条件を満たさない場合はvalidationについての実装が異なるので拡張する場合は要変更
-func validateOptions() {
+func validateOptions() bool {
 	optionCount := 0
 	flag.VisitAll(func(f *flag.Flag) {
 		if f.Value.String() != f.DefValue {
@@ -137,19 +135,22 @@ func validateOptions() {
 	})
 
 	if optionCount > 1 {
-		log.Fatal(Synopsys)
+		return false
 	}
+
+	return true
 }
 
 // プログラムの引数として指定されたoptionを返す
 // 事前条件: すでにoptionsは適切なものが残っていることが保証されている
 func selectOption(options []CommandOption) CommandOption {
-	var ret CommandOption = NewLineCountOption(DefaultLineCount)
+
+	var selected CommandOption = NewLineCountOption(DefaultLineCount)
 	for _, o := range options {
 		if o.IsDefaultValue() {
 			continue
 		}
-		ret = o
+		selected = o
 	}
-	return ret
+	return selected
 }
