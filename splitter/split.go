@@ -5,6 +5,7 @@ package splitter
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	. "github.com/ntk221/split/commandOption"
 	"io"
@@ -17,13 +18,14 @@ const (
 )
 
 var (
-	partCount string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
+	outputSuffix string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
 )
 
 // 書き込み先のfileを抽象化したinterface
 type StringWriteCloser interface {
 	io.WriteCloser
 	io.StringWriter
+	Name() string
 }
 
 // 書き込み先のfileを生成する処理を抽象化したinteface
@@ -43,19 +45,29 @@ func (s *Splitter) Split(file io.Reader) {
 	}
 
 	option := s.option
-	if option.OptionType() == LineCountType {
+	switch option.OptionType() {
+	case LineCountType:
 		s.splitUsingLineCount(file)
-		return
-	}
-	if option.OptionType() == ChunkCountType {
+	case ChunkCountType:
 		s.splitUsingChunkCount(file)
-		return
-	}
-	if option.OptionType() == ByteCountType {
+	case ByteCountType:
 		s.splitUsingByteCount(file)
-		return
+	default:
+		panic("意図しないOptionTypeです")
 	}
-	panic("意図しないOptionTypeです")
+}
+
+// 入力: outputPrefix, partCount
+// 出力: partFile StringWriteCloser
+func createFile(c Creator, prefix string, suffix string) (StringWriteCloser, error) {
+	partName := fmt.Sprintf("%s%s", prefix, suffix)
+	partFileName := fmt.Sprintf("%s", partName)
+	partFile, err := c.Create(partFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return partFile, nil
 }
 
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
@@ -69,67 +81,52 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 	}
 
 	reader := bufio.NewReader(file)
+	// ループが終了するのは
+	// 1. 生成するファイルが制限を超える時("aa" ~ "zz" に収まらないとき)
+	// 2. 読み込みファイルから読む内容がもうない時
 	for {
-		// 仮にこのループに入る前にファイルが作成可能か判定することができる場合
-		// この判定とdeletePartFileは必要ない
-		if partCount >= FileLimit {
+		if outputSuffix >= FileLimit {
 			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 
-		// ファイルの作成処理
-		// ex: xaa, xab, xac, ...
-		// 入力: outputPrefix, partCount
-
-		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := s.fileCreator.Create(partFileName)
+		// 書き込み先のファイルの作成
+		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// 出力: partFile StringWriteCloser
-
-		var i uint64
+		// 読み込み元のファイルから読み込む
 		lineCount := lineCountOption.ConvertToNum()
-
-		// ファイルの読み込み処理
-		var lines []string
-		for i = 0; i < lineCount; i++ {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				if err == io.EOF {
-					/*--- 最後に読み込んだ分は書き込む --*/
-					for _, line := range lines {
-						_, err = partFile.WriteString(line)
-						if err != nil {
-							log.Fatal(err)
-						}
+		lines, err := readLines(lineCount, outputFile, reader)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				for _, line := range lines {
+					_, err = outputFile.WriteString(line)
+					if err != nil {
+						log.Fatal(err)
 					}
-					_ = partFile.Close()
-					return
-				} else {
-					fmt.Println("行を読み込めませんでした")
-					log.Fatal(err)
 				}
+				return
 			}
-			lines = append(lines, line)
+			log.Fatal(err)
 		}
 
-		// 分割した内容の書き込み処理
+		// 書き込み先のファイルに書き込む
 		for _, line := range lines {
-			_, err = partFile.WriteString(line)
+			_, err = outputFile.WriteString(line)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
 
-		err = partFile.Close()
+		// 書き込んだファイルを閉じる
+		err = outputFile.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		partCount = incrementString(partCount)
+		outputSuffix = incrementString(outputSuffix)
 	}
 }
 
@@ -153,48 +150,37 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 
 	var i uint64
 	for i = 0; i < chunkCount; i++ {
-		if partCount >= FileLimit {
+		if outputSuffix >= FileLimit {
 			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 
-		/* --- ファイルの作成処理 --- */
-		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := s.fileCreator.Create(partFileName)
+		// 書き込み先のファイルを作る
+		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
 		if err != nil {
 			log.Fatal(err)
 		}
-		/* --- ファイルの作成処理 --- */
 
-		/*--- chunkの選択処理 ---*/
-		// i番目のchunkを特定する
-		start := i * chunkSize
-		end := start + chunkSize
-		// i が n-1番目の時(最後のchunkの時)はendをcontentの終端に揃える(manを参照)
-		if i == chunkCount-1 {
-			end = uint64(len(content))
-		}
-		chunk := content[start:end]
-		// i番目のchunkがすでに空の時は終了する
-		if !(len(chunk) > 0) {
-			_ = os.Remove(partFileName)
+		// 読み込みファイルから読み込む
+		chunk, ok := readChunk(i, chunkSize, chunkCount, content)
+		if !ok {
+			_ = os.Remove(outputFile.Name())
 			return
 		}
-		/*--- chunkの選択処理 ---*/
 
-		// chunkの書き込み処理
-		_, err = partFile.Write(chunk)
+		// 書き込み先のファイルに書き込む
+		_, err = outputFile.Write(chunk)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = partFile.Close()
+		// 書き込んだファイルを閉じる
+		err = outputFile.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		partCount = incrementString(partCount)
+		outputSuffix = incrementString(outputSuffix)
 	}
 
 	return
@@ -212,19 +198,16 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 	reader := bufio.NewReader(file)
 
 	for {
-		if partCount >= FileLimit {
+		if outputSuffix >= FileLimit {
 			deletePartFile(outputPrefix)
 			log.Fatal("too many files")
 		}
 
-		/* --- ファイルの作成処理 -- */
-		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
-		partFileName := fmt.Sprintf("%s", partName)
-		partFile, err := s.fileCreator.Create(partFileName)
+		// 書き込み先のファイルを作る
+		outpuFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
 		if err != nil {
 			log.Fatal(err)
 		}
-		/* --- ファイルの作成処理 -- */
 
 		// 読み込んだ合計バイト数
 		var readBytes uint64
@@ -247,15 +230,15 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 					// fmt.Println("ファイル分割が終了しました")
 					// 1バイトも書き込めなかった場合はファイルを消す
 					if readBytes == 0 {
-						_ = os.Remove(partFileName)
+						_ = os.Remove(outpuFile.Name())
 						return
 					}
 					// 最後に読み込んだ分は書き込んでおく
-					_, err = partFile.Write(buf[:readBytes+uint64(n)])
+					_, err = outpuFile.Write(buf[:readBytes+uint64(n)])
 					if err != nil {
 						log.Fatal(err)
 					}
-					err = partFile.Close()
+					err = outpuFile.Close()
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -270,18 +253,58 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 		}
 
 		// 書き込み処理
-		_, err = partFile.Write(buf[:readBytes])
+		_, err = outpuFile.Write(buf[:readBytes])
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = partFile.Close()
+		err = outpuFile.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		partCount = incrementString(partCount)
+		outputSuffix = incrementString(outputSuffix)
 	}
+}
+
+// ファイルの読み込み処理
+// 入力: lineCount, outputFile
+// 出力: lines
+func readLines(lineCount uint64, outputFile StringWriteCloser, reader *bufio.Reader) ([]string, error) {
+	var lines []string
+
+	var i uint64
+	for i = 0; i < lineCount; i++ {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				return lines, err
+			}
+			return nil, err
+		}
+		lines = append(lines, line)
+	}
+
+	return lines, nil
+}
+
+// 入力： chunkSize uint64, chunkCount uint64, content []byte
+// 出力: selectedChunk []byte
+func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([]byte, bool) {
+	// i番目のchunkを特定する
+	start := i * chunkSize
+	end := start + chunkSize
+	// i が n-1番目の時(最後のchunkの時)はendをcontentの終端に揃える(manを参照)
+	if i == chunkCount-1 {
+		end = uint64(len(content))
+	}
+	chunk := content[start:end]
+	// i番目のchunkがすでに空の時は終了する
+	if !(len(chunk) > 0) {
+		return nil, false
+	}
+
+	return chunk, true
 }
 
 func getNiceBuffer(byteCount uint64) uint64 {
@@ -312,14 +335,14 @@ func incrementString(s string) string {
 }
 
 func deletePartFile(outputPrefix string) {
-	for partCount < FileLimit {
-		partName := fmt.Sprintf("%s%s", outputPrefix, partCount)
+	for outputSuffix < FileLimit {
+		partName := fmt.Sprintf("%s%s", outputPrefix, outputSuffix)
 		partFileName := fmt.Sprintf("%s", partName)
 		err := os.Remove(partFileName)
 		if err != nil {
 			log.Fatal(err)
 		}
-		partCount = incrementString(partCount)
+		outputSuffix = incrementString(outputSuffix)
 	}
 }
 
