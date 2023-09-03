@@ -68,25 +68,22 @@ func main() {
 		outputPrefix = args[1]
 	}
 
-	var createFunc FileCreator
-	createFunc = func(fileName string) (splitter.StringWriteCloser, error) {
-		file, err := os.Create(fileName)
-		if err != nil {
-			return nil, err
-		}
-		return file, nil
+	outputDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+		return
 	}
-	s := splitter.New(option, outputPrefix, createFunc)
-	s.Split(file)
+
+	s := splitter.New(option, outputPrefix)
+
+	cli := &splitter.CLI{
+		Input:     file,
+		OutputDir: outputDir,
+		Splitter:  s,
+	}
+
+	cli.Run()
 	return
-}
-
-// 文字列を書き込み、閉じることができるファイルを作る関数型
-// 単体テスト時にMockに差し替えることを可能にする
-type FileCreator func(name string) (splitter.StringWriteCloser, error)
-
-func (fc FileCreator) Create(name string) (splitter.StringWriteCloser, error) {
-	return fc(name)
 }
 
 // コマンドライン引数でファイル名を指定された場合はそれをオープンして返す

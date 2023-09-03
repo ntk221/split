@@ -23,6 +23,18 @@ var (
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 )
 
+type CLI struct {
+	Input     io.Reader
+	OutputDir string
+	Splitter  *Splitter
+}
+
+func (cli *CLI) Run() {
+	input := cli.Input
+	outputDir := cli.OutputDir
+	cli.Splitter.Split(input, outputDir)
+}
+
 // StringWriteCloser は書き込み先のfileを抽象化したinterface
 type StringWriteCloser interface {
 	io.WriteCloser
@@ -30,30 +42,25 @@ type StringWriteCloser interface {
 	Name() string
 }
 
-// Creator は書き込み先のfileを生成する処理を抽象化したinterface
-type Creator interface {
-	Create(name string) (StringWriteCloser, error)
-}
-
 type Splitter struct {
 	option       CommandOption
 	outputPrefix string
-	fileCreator  Creator
 }
 
-func (s *Splitter) Split(file io.Reader) {
+func (s *Splitter) Split(file io.Reader, outputDir string) {
 	if file == nil {
 		panic("Splitの呼び出し時のfileにnilが入ってきている")
 	}
 
 	option := s.option
+
 	switch option.OptionType() {
 	case LineCountType:
-		s.splitUsingLineCount(file)
+		s.splitUsingLineCount(file, outputDir)
 	case ChunkCountType:
-		s.splitUsingChunkCount(file)
+		s.splitUsingChunkCount(file, outputDir)
 	case ByteCountType:
-		s.splitUsingByteCount(file)
+		s.splitUsingByteCount(file, outputDir)
 	default:
 		panic("意図しないOptionTypeです")
 	}
@@ -61,7 +68,8 @@ func (s *Splitter) Split(file io.Reader) {
 
 // SplitUsingLineCount はlineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
-func (s *Splitter) splitUsingLineCount(file io.Reader) {
+func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string) {
+
 	lineCountOption := s.option
 	outputPrefix := s.outputPrefix
 
@@ -79,10 +87,11 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 			log.Fatal("too many files")
 		}
 
-		// 書き込み先のファイルの作成
-		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
+		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
+		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
 
 		// 読み込み元のファイルから読み込む
@@ -90,6 +99,10 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 		lines, err := readLines(lineCount, reader)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
+				if len(lines) == 0 {
+					_ = os.Remove(outputFile.Name())
+					return
+				}
 				for _, line := range lines {
 					_, err = outputFile.WriteString(line)
 					if err != nil {
@@ -119,7 +132,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 	}
 }
 
-func (s *Splitter) splitUsingChunkCount(file io.Reader) {
+func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
 	chunkCountOption := s.option
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
@@ -144,10 +157,11 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 			log.Fatal("too many files")
 		}
 
-		// 書き込み先のファイルを作る
-		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
+		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
+		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
 
 		// 読み込みファイルから読み込む
@@ -175,7 +189,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 	return
 }
 
-func (s *Splitter) splitUsingByteCount(file io.Reader) {
+func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
 	var byteCountOption ByteCountOption
 
 	var ok bool
@@ -193,10 +207,11 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 			log.Fatal("too many files")
 		}
 
-		// 書き込み先のファイルを作る
-		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
+		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
+		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
 
 		buf, err := readBytes(byteCountOption, reader, outputFile)
@@ -220,17 +235,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 
 		outputSuffix = incrementString(outputSuffix)
 	}
-}
-
-func createFile(c Creator, prefix string, suffix string) (StringWriteCloser, error) {
-	partName := fmt.Sprintf("%s%s", prefix, suffix)
-	partFileName := fmt.Sprintf("%s", partName)
-	partFile, err := c.Create(partFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return partFile, nil
 }
 
 func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
@@ -354,10 +358,9 @@ func deletePartFile(outputPrefix string) {
 	}
 }
 
-func New(option CommandOption, outputPrefix string, fileCreator Creator) *Splitter {
+func New(option CommandOption, outputPrefix string) *Splitter {
 	return &Splitter{
 		option,
 		outputPrefix,
-		fileCreator,
 	}
 }
