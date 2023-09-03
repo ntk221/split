@@ -19,6 +19,8 @@ const (
 
 var (
 	outputSuffix string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
+
+	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 )
 
 // 書き込み先のfileを抽象化したinterface
@@ -57,26 +59,13 @@ func (s *Splitter) Split(file io.Reader) {
 	}
 }
 
-// 入力: outputPrefix, partCount
-// 出力: partFile StringWriteCloser
-func createFile(c Creator, prefix string, suffix string) (StringWriteCloser, error) {
-	partName := fmt.Sprintf("%s%s", prefix, suffix)
-	partFileName := fmt.Sprintf("%s", partName)
-	partFile, err := c.Create(partFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return partFile, nil
-}
-
 // SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
 func (s *Splitter) splitUsingLineCount(file io.Reader) {
 	lineCountOption := s.option
 	outputPrefix := s.outputPrefix
 
-	if lineCountOption.OptionType() != LineCountType {
+	if _, ok := lineCountOption.(LineCountOption); !ok {
 		panic("SplitUsingLineCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -98,7 +87,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader) {
 
 		// 読み込み元のファイルから読み込む
 		lineCount := lineCountOption.ConvertToNum()
-		lines, err := readLines(lineCount, outputFile, reader)
+		lines, err := readLines(lineCount, reader)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				for _, line := range lines {
@@ -135,7 +124,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
 
-	if chunkCountOption.OptionType() != ChunkCountType {
+	if _, ok := chunkCountOption.(ChunkCountOption); !ok {
 		panic("SplitUsingChunkCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -187,9 +176,10 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader) {
 }
 
 func (s *Splitter) splitUsingByteCount(file io.Reader) {
-	byteCountOption := s.option
+	var byteCountOption ByteCountOption
 
-	if byteCountOption.OptionType() != ByteCountType {
+	var ok bool
+	if byteCountOption, ok = s.option.(ByteCountOption); !ok {
 		panic("SplitUsingByteCountがByteCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -204,61 +194,26 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 		}
 
 		// 書き込み先のファイルを作る
-		outpuFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
+		outputFile, err := createFile(s.fileCreator, outputPrefix, outputSuffix)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// 読み込んだ合計バイト数
-		var readBytes uint64
-
-		byteCount := byteCountOption.ConvertToNum()
-		bufSize := getNiceBuffer(byteCount)
-		buf := make([]byte, bufSize)
-		/*--- 読み込み処理 ---*/
-		for readBytes < byteCount {
-			readSize := bufSize
-			// 今回bufferのサイズ分読み込んだらbyteCountをオーバーする時
-			// optionで指定されたbyteCount - これまで読み込んだバイト数だけ読めばいい
-			if readBytes+readSize > byteCount {
-				readSize = byteCount - readBytes
+		buf, err := readBytes(byteCountOption, reader, outputFile)
+		if err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, ErrFinishWrite) {
+				return
 			}
-
-			n, err := reader.Read(buf[:readSize])
-			if err != nil {
-				if err == io.EOF {
-					// fmt.Println("ファイル分割が終了しました")
-					// 1バイトも書き込めなかった場合はファイルを消す
-					if readBytes == 0 {
-						_ = os.Remove(outpuFile.Name())
-						return
-					}
-					// 最後に読み込んだ分は書き込んでおく
-					_, err = outpuFile.Write(buf[:readBytes+uint64(n)])
-					if err != nil {
-						log.Fatal(err)
-					}
-					err = outpuFile.Close()
-					if err != nil {
-						log.Fatal(err)
-					}
-					return
-				} else {
-					fmt.Println("バイトを読み込めませんでした")
-					log.Fatal(err)
-				}
-			}
-
-			readBytes += uint64(n)
+			log.Fatal(err)
 		}
 
 		// 書き込み処理
-		_, err = outpuFile.Write(buf[:readBytes])
+		_, err = outputFile.Write(buf[len(buf):])
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		err = outpuFile.Close()
+		err = outputFile.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -267,10 +222,20 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 	}
 }
 
-// ファイルの読み込み処理
-// 入力: lineCount, outputFile
-// 出力: lines
-func readLines(lineCount uint64, outputFile StringWriteCloser, reader *bufio.Reader) ([]string, error) {
+// 入力: outputPrefix, partCount
+// 出力: partFile StringWriteCloser
+func createFile(c Creator, prefix string, suffix string) (StringWriteCloser, error) {
+	partName := fmt.Sprintf("%s%s", prefix, suffix)
+	partFileName := fmt.Sprintf("%s", partName)
+	partFile, err := c.Create(partFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return partFile, nil
+}
+
+func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
 	var lines []string
 
 	var i uint64
@@ -288,8 +253,6 @@ func readLines(lineCount uint64, outputFile StringWriteCloser, reader *bufio.Rea
 	return lines, nil
 }
 
-// 入力： chunkSize uint64, chunkCount uint64, content []byte
-// 出力: selectedChunk []byte
 func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([]byte, bool) {
 	// i番目のchunkを特定する
 	start := i * chunkSize
@@ -305,6 +268,53 @@ func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([
 	}
 
 	return chunk, true
+}
+
+func readBytes(byteCountOption ByteCountOption, reader *bufio.Reader, outputFile StringWriteCloser) ([]byte, error) {
+	// 読み込んだ合計バイト数
+	var readBytes uint64
+
+	byteCount := byteCountOption.ConvertToNum()
+	bufSize := getNiceBuffer(byteCount)
+	buf := make([]byte, bufSize)
+
+	for readBytes < byteCount {
+		readSize := bufSize
+		// 今回bufferのサイズ分読み込んだらbyteCountをオーバーする時
+		// (optionで指定されたbyteCount - これまで読み込んだバイト数) の分だけ読めばいい
+		if readBytes+readSize > byteCount {
+			readSize = byteCount - readBytes
+		}
+
+		n, err := reader.Read(buf[:readSize])
+		if err != nil {
+			if err == io.EOF {
+				// fmt.Println("ファイル分割が終了しました")
+				// 1バイトも書き込めなかった場合はファイルを消す
+				if readBytes == 0 {
+					_ = os.Remove(outputFile.Name())
+					return nil, err
+				}
+				// 最後に読み込んだ分は書き込んでおく
+				_, err = outputFile.Write(buf[:readBytes+uint64(n)])
+				if err != nil {
+					log.Fatal(err)
+				}
+				err = outputFile.Close()
+				if err != nil {
+					log.Fatal(err)
+				}
+				return nil, ErrFinishWrite
+			} else {
+				fmt.Println("バイトを読み込めませんでした")
+				log.Fatal(err)
+			}
+		}
+
+		readBytes += uint64(n)
+	}
+
+	return buf, nil
 }
 
 func getNiceBuffer(byteCount uint64) uint64 {
