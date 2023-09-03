@@ -23,14 +23,14 @@ var (
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 )
 
-// 書き込み先のfileを抽象化したinterface
+// StringWriteCloser は書き込み先のfileを抽象化したinterface
 type StringWriteCloser interface {
 	io.WriteCloser
 	io.StringWriter
 	Name() string
 }
 
-// 書き込み先のfileを生成する処理を抽象化したinteface
+// Creator は書き込み先のfileを生成する処理を抽象化したinterface
 type Creator interface {
 	Create(name string) (StringWriteCloser, error)
 }
@@ -59,7 +59,7 @@ func (s *Splitter) Split(file io.Reader) {
 	}
 }
 
-// SplitUsingLineCount lineCount分だけ、fileから読み込み、他のファイルに出力する
+// SplitUsingLineCount はlineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
 func (s *Splitter) splitUsingLineCount(file io.Reader) {
 	lineCountOption := s.option
@@ -222,8 +222,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader) {
 	}
 }
 
-// 入力: outputPrefix, partCount
-// 出力: partFile StringWriteCloser
 func createFile(c Creator, prefix string, suffix string) (StringWriteCloser, error) {
 	partName := fmt.Sprintf("%s%s", prefix, suffix)
 	partFileName := fmt.Sprintf("%s", partName)
