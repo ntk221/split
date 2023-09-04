@@ -1,3 +1,35 @@
+// The split utility reads the given file and breaks it up
+// into files of 1000 lines each (if no options are specified), leaving the file unchanged.
+// If file is a single dash (‘-’) or absent, split reads from the standard input.
+//
+// The options are as follows:
+//
+//		-b byte_count[K|k|M|m|G|g]
+//		 Create split files byte_count bytes in length.
+//		 If k or K is appended to the number,
+//		 the file is split into byte_count kilobyte pieces.
+//		 If m or M is appended to the number,
+//		 the file is split into byte_count megabyte pieces.
+//		 If g or G is appended to the number,
+//		 the file is split into byte_count gigabyte pieces.
+//
+//		-l line_count
+//		 Create split files line_count lines in length.
+//
+//	 	-n chunk_count
+//	     Split file into chunk_count smaller files.
+//	     The first n - 1 files will be of size (size of file / chunk_count ) and
+//	     the last file will contain the remaining bytes.
+//
+// プログラムの実行例: ./split -l 2 test.txt
+//
+// flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかった
+// よって ./split -l2 test.txt のように space を開けない実行が未実装にした
+//
+// textファイルではない入力に関する挙動について man にはそれについて説明がなかった
+// よって、本プログラムの仕様として、text ファイル以外の入力を受け取らないようにした
+//
+// text ファイルの判定に file コマンドを使用しているのでこのプログラムはfileコマンドが使える環境でなくては動作しない
 package main
 
 import (
@@ -26,15 +58,6 @@ var (
 	byteCountOption  = flag.String("b", "", "バイト数を指定してください（例: 10K, 2M, 3G）")
 )
 
-// プログラムの実行例: ./split -l 2 test.txt
-//
-// flag packageを使った際のoptionの指定方法が option + space + value という形式しか発見できなかった
-// よって ./split -l2 test.txt のように space を開けない実行が未実装にした
-//
-// textファイルではない入力に関する挙動について man にはそれについて説明がなかった
-// よって、本プログラムの仕様として、text ファイル以外の入力を受け取らないようにした
-//
-// text ファイルの判定に file コマンドを使用しているのでこのプログラムはfileコマンドが使える環境でなくては動作しない
 func main() {
 	flag.Parse()
 	args := flag.Args()
