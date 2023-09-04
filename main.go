@@ -88,7 +88,7 @@ func main() {
 
 // コマンドライン引数でファイル名を指定された場合はそれをオープンして返す
 // コマンドライン引数が指定されない場合は、標準入力から受け取る
-func readyFile(args []string) (*os.File, func()) {
+func readyFile(args []string) (file *os.File, close func()) {
 	if len(args) == 0 {
 		return os.Stdin, func() {}
 	}
@@ -102,7 +102,8 @@ func readyFile(args []string) (*os.File, func()) {
 		log.Fatal(err)
 	}
 
-	return file, func() { file.Close() }
+	close = func() { file.Close() }
+	return file, close
 }
 
 // file コマンドを使ってsplitするファイルがtextファイルであるか否かを判定する
