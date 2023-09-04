@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	. "github.com/ntk221/split/commandOption"
+	"github.com/ntk221/split/option"
 )
 
 const (
@@ -59,7 +59,7 @@ func main() {
 		}
 	}
 
-	options := []CommandOption{NewLineCountOption(*lineCountOption), NewChunkCountOption(*chunkCountOption), NewByteCountOption(*byteCountOption)}
+	options := []option.Command{option.NewLineCount(*lineCountOption), option.NewChunkCount(*chunkCountOption), option.NewByteCount(*byteCountOption)}
 	option := selectOption(options)
 
 	outputPrefix := DefaultPrefix
@@ -140,9 +140,11 @@ func validateOptions() bool {
 
 // プログラムの引数として指定されたoptionを返す
 // 事前条件: すでにoptionsは適切なものが残っていることが保証されている
-func selectOption(options []CommandOption) CommandOption {
+func selectOption(options []option.Command) option.Command {
+	defaultOption := option.DefaultLineCount
 
-	var selected CommandOption = NewLineCountOption(DefaultLineCount)
+	var selected option.Command
+	selected = option.NewLineCount(defaultOption)
 	for _, o := range options {
 		if o.IsDefaultValue() {
 			continue

@@ -2,7 +2,7 @@ package main_test
 
 import (
 	"flag"
-	"github.com/ntk221/split/commandOption"
+	"github.com/ntk221/split/option"
 	"github.com/ntk221/split/splitter"
 	"github.com/tenntenn/golden"
 	"strings"
@@ -19,7 +19,7 @@ func init() {
 
 func Test(t *testing.T) {
 	dir := t.TempDir()
-	option := commandOption.LineCountOption(1)
+	option := option.LineCount(1)
 	input := strings.NewReader("Line1\nLine2\n")
 	s := splitter.New(option, "x")
 

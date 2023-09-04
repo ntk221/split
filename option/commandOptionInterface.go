@@ -1,4 +1,4 @@
-package commandOption
+package option
 
 const (
 	ChunkCountType = iota
@@ -10,8 +10,8 @@ const (
 	DefaultLineCount  = 1000
 )
 
-type CommandOption interface {
-	OptionType() int
+type Command interface {
+	Type() int
 	IsDefaultValue() bool
 	ConvertToNum() uint64
 }

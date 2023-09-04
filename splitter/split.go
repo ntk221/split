@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	. "github.com/ntk221/split/commandOption"
+	"github.com/ntk221/split/option"
 	"io"
 	"log"
 	"os"
@@ -32,7 +32,7 @@ type CLI struct {
 func (cli *CLI) Run() {
 	input := cli.Input
 	outputDir := cli.OutputDir
-	cli.Splitter.Split(input, outputDir)
+	cli.Splitter.split(input, outputDir)
 }
 
 // StringWriteCloser は書き込み先のfileを抽象化したinterface
@@ -43,23 +43,23 @@ type StringWriteCloser interface {
 }
 
 type Splitter struct {
-	option       CommandOption
+	option       option.Command
 	outputPrefix string
 }
 
-func (s *Splitter) Split(file io.Reader, outputDir string) {
+func (s *Splitter) split(file io.Reader, outputDir string) {
 	if file == nil {
-		panic("Splitの呼び出し時のfileにnilが入ってきている")
+		panic("splitの呼び出し時のfileにnilが入ってきている")
 	}
 
-	option := s.option
+	opt := s.option
 
-	switch option.OptionType() {
-	case LineCountType:
+	switch opt.Type() {
+	case option.LineCountType:
 		s.splitUsingLineCount(file, outputDir)
-	case ChunkCountType:
+	case option.ChunkCountType:
 		s.splitUsingChunkCount(file, outputDir)
-	case ByteCountType:
+	case option.ByteCountType:
 		s.splitUsingByteCount(file, outputDir)
 	default:
 		panic("意図しないOptionTypeです")
@@ -73,7 +73,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string) {
 	lineCountOption := s.option
 	outputPrefix := s.outputPrefix
 
-	if _, ok := lineCountOption.(LineCountOption); !ok {
+	if _, ok := lineCountOption.(option.LineCount); !ok {
 		panic("SplitUsingLineCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -137,7 +137,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
 
-	if _, ok := chunkCountOption.(ChunkCountOption); !ok {
+	if _, ok := chunkCountOption.(option.ChunkCount); !ok {
 		panic("SplitUsingChunkCountがLineCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -190,10 +190,10 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
 }
 
 func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
-	var byteCountOption ByteCountOption
+	var byteCountOption option.ByteCount
 
 	var ok bool
-	if byteCountOption, ok = s.option.(ByteCountOption); !ok {
+	if byteCountOption, ok = s.option.(option.ByteCount); !ok {
 		panic("SplitUsingByteCountがByteCount以外のCommandOptionで呼ばれている")
 	}
 
@@ -237,88 +237,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
 	}
 }
 
-func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
-	var lines []string
-
-	var i uint64
-	for i = 0; i < lineCount; i++ {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				return lines, err
-			}
-			return nil, err
-		}
-		lines = append(lines, line)
-	}
-
-	return lines, nil
-}
-
-func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([]byte, bool) {
-	// i番目のchunkを特定する
-	start := i * chunkSize
-	end := start + chunkSize
-	// i が n-1番目の時(最後のchunkの時)はendをcontentの終端に揃える(manを参照)
-	if i == chunkCount-1 {
-		end = uint64(len(content))
-	}
-	chunk := content[start:end]
-	// i番目のchunkがすでに空の時は終了する
-	if !(len(chunk) > 0) {
-		return nil, false
-	}
-
-	return chunk, true
-}
-
-func readBytes(byteCountOption ByteCountOption, reader *bufio.Reader, outputFile StringWriteCloser) ([]byte, error) {
-	// 読み込んだ合計バイト数
-	var readBytes uint64
-
-	byteCount := byteCountOption.ConvertToNum()
-	bufSize := getNiceBuffer(byteCount)
-	buf := make([]byte, bufSize)
-
-	for readBytes < byteCount {
-		readSize := bufSize
-		// 今回bufferのサイズ分読み込んだらbyteCountをオーバーする時
-		// (optionで指定されたbyteCount - これまで読み込んだバイト数) の分だけ読めばいい
-		if readBytes+readSize > byteCount {
-			readSize = byteCount - readBytes
-		}
-
-		n, err := reader.Read(buf[:readSize])
-		if err != nil {
-			if err == io.EOF {
-				// fmt.Println("ファイル分割が終了しました")
-				// 1バイトも書き込めなかった場合はファイルを消す
-				if readBytes == 0 {
-					_ = os.Remove(outputFile.Name())
-					return nil, err
-				}
-				// 最後に読み込んだ分は書き込んでおく
-				_, err = outputFile.Write(buf[:readBytes+uint64(n)])
-				if err != nil {
-					log.Fatal(err)
-				}
-				err = outputFile.Close()
-				if err != nil {
-					log.Fatal(err)
-				}
-				return nil, ErrFinishWrite
-			} else {
-				fmt.Println("バイトを読み込めませんでした")
-				log.Fatal(err)
-			}
-		}
-
-		readBytes += uint64(n)
-	}
-
-	return buf, nil
-}
-
 func getNiceBuffer(byteCount uint64) uint64 {
 	if byteCount > 1024*1024*1024 {
 		return 32 * 1024 * 1024 // 32MB バッファ
@@ -358,7 +276,7 @@ func deletePartFile(outputPrefix string) {
 	}
 }
 
-func New(option CommandOption, outputPrefix string) *Splitter {
+func New(option option.Command, outputPrefix string) *Splitter {
 	return &Splitter{
 		option,
 		outputPrefix,
