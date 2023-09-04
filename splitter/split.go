@@ -1,7 +1,16 @@
+// Package splitter は splitコマンドの仕様に従って、file を分割する処理を担当する
+// split メソッドは主に以下の処理を行う
+//
+//  1. optionに従って以下の処理を繰り返す
+//  2. 書き込み用のファイルを生成する
+//  3. 引数として受け取った読み込み用ファイルから読み込む
+//  4. 2で用意したファイルに書き込む
+//  5. 4で書き込んだファイルをクローズする
+//  6. 1に戻る
+//
+// CLI　構造体は Splitter 構造体をラップしていて、入力元ファイル(io.Reader)と出力ファイル名を切り替えられる
+// これによって、テスト時に柔軟性を持たせることが可能
 package splitter
-
-// splitter は splitコマンドの仕様にしたがって、file を分割する処理を担当する
-// Splitメソッドの実装中に現れる個々のヘルパーメソッドに関しては本パッケージの下部を参照してください
 
 import (
 	"bufio"
@@ -23,6 +32,8 @@ var (
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 )
 
+// CLI はSplitter構造体のラッパー
+// Input, Output をCLIで制御することができる
 type CLI struct {
 	Input     io.Reader
 	OutputDir string
@@ -33,13 +44,6 @@ func (cli *CLI) Run() {
 	input := cli.Input
 	outputDir := cli.OutputDir
 	cli.Splitter.split(input, outputDir)
-}
-
-// StringWriteCloser は書き込み先のfileを抽象化したinterface
-type StringWriteCloser interface {
-	io.WriteCloser
-	io.StringWriter
-	Name() string
 }
 
 type Splitter struct {
@@ -87,7 +91,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string) {
 			log.Fatal("too many files")
 		}
 
-		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
+		// 書き込み先のファイルを生成
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatal(err)

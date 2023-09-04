@@ -44,7 +44,7 @@ func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([
 	return chunk, true
 }
 
-func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFile StringWriteCloser) ([]byte, error) {
+func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFile *os.File) ([]byte, error) {
 	// 読み込んだ合計バイト数
 	var readBytes uint64
 
