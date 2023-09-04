@@ -54,12 +54,12 @@ func (s *Splitter) split(file io.Reader, outputDir string) {
 
 	opt := s.option
 
-	switch opt.Type() {
-	case option.LineCountType:
+	switch opt.(type) {
+	case option.LineCount:
 		s.splitUsingLineCount(file, outputDir)
-	case option.ChunkCountType:
+	case option.ChunkCount:
 		s.splitUsingChunkCount(file, outputDir)
-	case option.ByteCountType:
+	case option.ByteCount:
 		s.splitUsingByteCount(file, outputDir)
 	default:
 		panic("意図しないOptionTypeです")

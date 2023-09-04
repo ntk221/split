@@ -11,7 +11,6 @@ const (
 )
 
 type Command interface {
-	Type() int
 	IsDefaultValue() bool
 	ConvertToNum() uint64
 }
