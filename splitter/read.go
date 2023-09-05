@@ -16,6 +16,9 @@ func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
 	for i = 0; i < lineCount; i++ {
 		line, err := reader.ReadString('\n')
 		if err != nil {
+			if len(line) > 0 {
+				lines = append(lines, line)
+			}
 			if err == io.EOF {
 				return lines, err
 			}
@@ -27,12 +30,12 @@ func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
 	return lines, nil
 }
 
-func readChunk(i uint64, chunkSize uint64, chunkCount uint64, content []byte) ([]byte, bool) {
-	// i番目のchunkを特定する
-	start := i * chunkSize
+func readChunk(index uint64, chunkSize uint64, chunkCount uint64, content []byte) ([]byte, bool) {
+	// index番目のchunkを特定する
+	start := index * chunkSize
 	end := start + chunkSize
-	// i が n-1番目の時(最後のchunkの時)はendをcontentの終端に揃える(manを参照)
-	if i == chunkCount-1 {
+	// index が n-1番目の時(最後のchunk1の時)はendをcontentの終端に揃える(manを参照)
+	if index == chunkCount-1 {
 		end = uint64(len(content))
 	}
 	chunk := content[start:end]

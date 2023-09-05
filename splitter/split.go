@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	outputSuffix string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
+	// outputSuffix string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
 
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 )
@@ -73,7 +73,7 @@ func (s *Splitter) split(file io.Reader, outputDir string) {
 // SplitUsingLineCount はlineCount分だけ、fileから読み込み、他のファイルに出力する
 // 事前条件: CommandOptionの種類はlineCountでなくてはならない
 func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string) {
-
+	outputSuffix := "aa"
 	lineCountOption := s.option
 	outputPrefix := s.outputPrefix
 
@@ -137,6 +137,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string) {
 }
 
 func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
+	outputSuffix := "aa"
 	chunkCountOption := s.option
 	outputPrefix := s.outputPrefix
 	_ = outputPrefix
@@ -169,6 +170,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
 		}
 
 		// 読み込みファイルから読み込む
+		// iは分割したchunkに割り振ったindex
 		chunk, ok := readChunk(i, chunkSize, chunkCount, content)
 		if !ok {
 			_ = os.Remove(outputFile.Name())
@@ -194,6 +196,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string) {
 }
 
 func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
+	outputSuffix := "aa"
 	var byteCountOption option.ByteCount
 
 	var ok bool
@@ -269,6 +272,7 @@ func incrementString(s string) string {
 }
 
 func deletePartFile(outputPrefix string) {
+	outputSuffix := "aa"
 	for outputSuffix < FileLimit {
 		partName := fmt.Sprintf("%s%s", outputPrefix, outputSuffix)
 		partFileName := fmt.Sprintf("%s", partName)
