@@ -230,7 +230,7 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
 		}
 
 		// 書き込み処理
-		_, err = outputFile.Write(buf[len(buf):])
+		_, err = outputFile.Write(buf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -242,17 +242,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string) {
 
 		outputSuffix = incrementString(outputSuffix)
 	}
-}
-
-func getNiceBuffer(byteCount uint64) uint64 {
-	if byteCount > 1024*1024*1024 {
-		return 32 * 1024 * 1024 // 32MB バッファ
-	} else if byteCount > 1024*1024 {
-		return 4 * 1024 * 1024 // 4MB バッファ
-	} else if byteCount > 1024 {
-		return 64 * 1024 // 64KB バッファ
-	}
-	return 4096 // デフォルト 4KB バッファ
 }
 
 // 文字列用のincrement関数

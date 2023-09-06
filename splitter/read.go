@@ -91,5 +91,16 @@ func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFil
 		readBytes += uint64(n)
 	}
 
-	return buf, nil
+	return buf[:readBytes], nil
+}
+
+func getNiceBuffer(byteCount uint64) uint64 {
+	if byteCount > 1024*1024*1024 {
+		return 32 * 1024 * 1024 // 32MB バッファ
+	} else if byteCount > 1024*1024 {
+		return 4 * 1024 * 1024 // 4MB バッファ
+	} else if byteCount > 1024 {
+		return 64 * 1024 // 64KB バッファ
+	}
+	return 4096 // デフォルト 4KB バッファ
 }

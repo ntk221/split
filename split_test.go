@@ -18,7 +18,7 @@ func init() {
 	flag.BoolVar(&flagUpdate, "update", false, "update golden files")
 }
 
-func TestSplit(t *testing.T) {
+func TestSplitUsingLineCount(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        string
@@ -81,7 +81,49 @@ func TestSplit(t *testing.T) {
 
 			got := golden.Txtar(t, dir)
 
-			if diff := golden.Check(t, flagUpdate, "testdata", tt.wantData, got); diff != "" {
+			if diff := golden.Check(t, flagUpdate, "testdata/lineCount", tt.wantData, got); diff != "" {
+				t.Errorf("Test case %s failed:\n%s", tt.name, diff)
+			}
+		})
+	}
+}
+
+func TestSplitUsingByteCount(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		option       option.Command
+		outputPrefix string
+		wantData     string
+	}{
+		{
+			name:         "改行含む2行のテスト",
+			input:        "HogeHogeHugaHuga",
+			option:       option.NewByteCount("4"),
+			outputPrefix: "x",
+			wantData:     "simple",
+		},
+	}
+
+	var s *splitter.Splitter
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			option := tt.option
+			input := strings.NewReader(tt.input)
+			s = splitter.New(option, tt.outputPrefix)
+
+			cli := &splitter.CLI{
+				Input:     input,
+				OutputDir: dir,
+				Splitter:  s,
+			}
+
+			cli.Run()
+
+			got := golden.Txtar(t, dir)
+
+			if diff := golden.Check(t, flagUpdate, "testdata/byteCount", tt.wantData, got); diff != "" {
 				t.Errorf("Test case %s failed:\n%s", tt.name, diff)
 			}
 		})
