@@ -5,6 +5,7 @@ import (
 	"github.com/ntk221/split/option"
 	"github.com/ntk221/split/splitter"
 	"github.com/tenntenn/golden"
+	"math"
 	"strings"
 	"testing"
 )
@@ -39,6 +40,27 @@ func TestSplit(t *testing.T) {
 			outputPrefix: "x",
 			wantData:     "noNewLine",
 		},*/
+		{
+			name:         "改行のみ",
+			input:        "\n\n\n",
+			option:       option.NewLineCount(1),
+			outputPrefix: "x",
+			wantData:     "onlyNewLine",
+		},
+		{
+			name:         "output prefix指定",
+			input:        "hello\n",
+			option:       option.NewLineCount(1),
+			outputPrefix: "HOGE",
+			wantData:     "outputPrefix",
+		},
+		{
+			name:         "line countをINT_MAXで指定",
+			input:        "hello\n",
+			option:       option.NewLineCount(math.MaxInt),
+			outputPrefix: "x",
+			wantData:     "bigIntCount",
+		},
 	}
 
 	var s *splitter.Splitter
