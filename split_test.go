@@ -97,11 +97,25 @@ func TestSplitUsingByteCount(t *testing.T) {
 		wantData     string
 	}{
 		{
-			name:         "改行含む2行のテスト",
+			name:         "4 * 4 = 16バイトの入力を4バイト単位で分割",
 			input:        "HogeHogeHugaHuga",
 			option:       option.NewByteCount("4"),
 			outputPrefix: "x",
 			wantData:     "simple",
+		},
+		{
+			name:         "3 * 4 = 12バイトの入力を5バイト単位で分割",
+			input:        "Hi,HowAreYou",
+			option:       option.NewByteCount("5"),
+			outputPrefix: "x",
+			wantData:     "indivisible",
+		},
+		{
+			name:         "オプションに0バイトを指定して分割",
+			input:        "hello\n",
+			option:       option.NewByteCount("0"),
+			outputPrefix: "x",
+			wantData:     "zeroDivided",
 		},
 	}
 

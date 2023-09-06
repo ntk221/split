@@ -106,6 +106,7 @@ func main() {
 	}
 
 	cli.Run()
+
 	return
 }
 

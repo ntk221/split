@@ -55,6 +55,23 @@ func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFil
 	bufSize := getNiceBuffer(byteCount)
 	buf := make([]byte, bufSize)
 
+	// optionに0が指定されている場合は全部読みこんで返す
+	if byteCountOption == 0 {
+		n, err := reader.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				// fmt.Println("ファイル分割が終了しました")
+				// 1バイトも書き込めなかった場合はファイルを消す
+				if readBytes == 0 {
+					_ = os.Remove(outputFile.Name())
+					return nil, err
+				}
+			}
+			return nil, err
+		}
+		return buf[:n], nil
+	}
+
 	for readBytes < byteCount {
 		readSize := bufSize
 		// 今回bufferのサイズ分読み込んだらbyteCountをオーバーする時
