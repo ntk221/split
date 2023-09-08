@@ -33,7 +33,7 @@ func TestSplitUsingLineCount(t *testing.T) {
 			outputPrefix: "x",
 			wantData:     "twoLines",
 		},
-		/*{
+		/*{ // このケースは txtar を用いた golden testで記述できないので、個別のテストで対応する
 			name:         "1行",
 			input:        "test",
 			option:       option.NewLineCount(1),
@@ -138,6 +138,68 @@ func TestSplitUsingByteCount(t *testing.T) {
 			got := golden.Txtar(t, dir)
 
 			if diff := golden.Check(t, flagUpdate, "testdata/byteCount", tt.wantData, got); diff != "" {
+				t.Errorf("Test case %s failed:\n%s", tt.name, diff)
+			}
+		})
+	}
+}
+
+func TestSplitUsingChunkCound(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        string
+		option       option.Command
+		outputPrefix string
+		wantData     string
+	}{
+		{
+			name:         "16バイトの入力を4つのchunkで分割",
+			input:        "HogeHogeHugaHuga",
+			option:       option.NewChunkCount(4),
+			outputPrefix: "x",
+			wantData:     "simple",
+		},
+		{
+			name:         "12バイトの入力を3つのchunkで分割",
+			input:        "Hi,HowAreYou",
+			option:       option.NewChunkCount(3),
+			outputPrefix: "x",
+			wantData:     "indivisible",
+		},
+		/*{
+			name:         "chunkCountに0を指定する",
+			input:        "hello\n",
+			option:       option.NewChunkCount(0),
+			outputPrefix: "x",
+		},
+		{
+			name:		  "inputの可能なchunkによる分割数よりも多い分割を指定する"
+			input:		  "hello\n"
+			option:		  option.NewChunkCount(100)
+			outputPrefix: "x",
+		}
+		*/
+	}
+
+	var s *splitter.Splitter
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			option := tt.option
+			input := strings.NewReader(tt.input)
+			s = splitter.New(option, tt.outputPrefix)
+
+			cli := &splitter.CLI{
+				Input:     input,
+				OutputDir: dir,
+				Splitter:  s,
+			}
+
+			cli.Run()
+
+			got := golden.Txtar(t, dir)
+
+			if diff := golden.Check(t, flagUpdate, "testdata/chunkCount", tt.wantData, got); diff != "" {
 				t.Errorf("Test case %s failed:\n%s", tt.name, diff)
 			}
 		})

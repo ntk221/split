@@ -97,7 +97,7 @@ func main() {
 		return
 	}
 
-	s := splitter.New(option, outputPrefix)
+	s := splitter.New(outputPrefix)
 
 	cli := &splitter.CLI{
 		Input:     file,
@@ -105,7 +105,11 @@ func main() {
 		Splitter:  s,
 	}
 
-	cli.Run()
+	err = cli.Run(option)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return
 }
