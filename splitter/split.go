@@ -90,21 +90,21 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 			return ErrTooManyFile
 		}
 
-		// 書き込み先のファイルを生成
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return fmt.Errorf("splitUsingLineCount(): %w", err)
 		}
 
-		// 読み込み元のファイルから読み込む
-		lineCount := lineCount.ConvertToNum()
+		lineCount := lineCount.ConvertToNum() // lineCountはファイルから読み込む行数
 		lines, err := readLines(lineCount, reader)
 		if err != nil {
+			// 最後まで読んだ場合の処理
 			if errors.Is(err, io.EOF) {
 				if len(lines) == 0 {
 					_ = os.Remove(outputFile.Name())
 					return nil
 				}
+				// EOFにぶつかるまでに読み込んだlineを書き出す
 				for _, line := range lines {
 					_, err = outputFile.WriteString(line)
 					if err != nil {
@@ -113,21 +113,22 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 				}
 				return nil
 			}
-			log.Fatal(err)
+			// io.EOF以外の読み込みエラーは落とす
+			log.Fatalf("splitUsingLineCount(): %v", err)
 		}
 
 		// 書き込み先のファイルに書き込む
 		for _, line := range lines {
 			_, err = outputFile.WriteString(line)
 			if err != nil {
-				return fmt.Errorf("splitUsingLineCount(): %w", err)
+				log.Fatalf("splitUsingLineCount()でファイル書き込み時のエラーが発生しました: %v", err)
 			}
 		}
 
 		// 書き込んだファイルを閉じる
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingLineCount(): %w", err)
+			log.Fatalf("splitUsingLineCount()でファイルを閉じる際にエラーが発生しました: %v", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)
@@ -163,7 +164,6 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 			return ErrTooManyFile
 		}
 
-		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatalf("splitUsingChunkCount()でファイルオープンに失敗しました: %v", err)
@@ -177,13 +177,11 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
-		// 書き込み先のファイルに書き込む
 		_, err = outputFile.Write(chunk)
 		if err != nil {
 			log.Fatalf("splitUsingChunkCount()でファイル書き込みに失敗しました: %v", err)
 		}
 
-		// 書き込んだファイルを閉じる
 		err = outputFile.Close()
 		if err != nil {
 			log.Fatalf("splitUsingChunkCount()でファイルのクローズに失敗しました: %v", err)
@@ -214,7 +212,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 			return ErrTooManyFile
 		}
 
-		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Fatalf("splitUsingByteCount()でファイルのオープンに失敗しました: %v", err)
@@ -228,7 +225,6 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 			return fmt.Errorf("splitUsingByteCount(): %w", err)
 		}
 
-		// 書き込み処理
 		_, err = outputFile.Write(buf)
 		if err != nil {
 			log.Fatalf("splitUsingByteCount()でファイルの書き込み処理に失敗しました: %v", err)
