@@ -31,6 +31,7 @@ var (
 
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 	ErrTooManyFile = errors.New("ファイルが生成できる上限を超えました")
+	ErrZeroChunk   = errors.New("chunkが分割可能な上限を超えています")
 )
 
 // CLI はSplitter構造体のラッパー
@@ -153,6 +154,10 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 
 	chunkCount := chunkCountOption.ConvertToNum()
 	chunkSize := uint64(len(content)) / chunkCount
+
+	if chunkSize == 0 {
+		return ErrZeroChunk
+	}
 
 	var i uint64
 	for i = 0; i < chunkCount; i++ {

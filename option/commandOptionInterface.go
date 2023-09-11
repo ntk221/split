@@ -1,9 +1,9 @@
 package option
 
 const (
-	ChunkCountType = iota
+	/*ChunkCountType = iota
 	LineCountType
-	ByteCountType
+	ByteCountType*/
 
 	DefaultChunkCount = 0
 	DefaultByteCount  = 0
