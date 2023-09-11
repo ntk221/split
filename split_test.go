@@ -21,16 +21,15 @@ func init() {
 
 func TestSplitUsingLineCount(t *testing.T) {
 	tests := map[string]struct {
-		// name         string
 		input        string
 		option       option.Command
 		outputPrefix string
 		wantData     string
 	}{
-		"twoLines":       {input: "Line1\nLine2\n", option: option.NewLineCount(1), outputPrefix: "x", wantData: "twoLines"},
-		"onlyNewLine":    {input: "\n\n\n", option: option.NewLineCount(1), outputPrefix: "x", wantData: "onlyNewLine"},
-		"outputPrefix":   {input: "hello\n", option: option.NewLineCount(1), outputPrefix: "HOGE", wantData: "outputPrefix"},
-		"largeLineCount": {input: "hello\n", option: option.NewLineCount(math.MaxInt), outputPrefix: "x", wantData: "bigIntCount"},
+		"twoLines":       {"Line1\nLine2\n", lineCount(t, 1), "x", "twoLines"},
+		"onlyNewLine":    {"\n\n\n", lineCount(t, 1), "x", "onlyNewLine"},
+		"outputPrefix":   {"hello\n", lineCount(t, 1), "HOGE", "outputPrefix"},
+		"largeLineCount": {"hello\n", lineCount(t, math.MaxInt), "x", "bigIntCount"},
 	}
 
 	var s *splitter.Splitter
@@ -71,9 +70,9 @@ func TestSplitUsingByteCount(t *testing.T) {
 		outputPrefix string
 		wantData     string
 	}{
-		"simpleCase":  {input: "HogeHogeHugaHuga", option: option.NewByteCount("4"), outputPrefix: "x", wantData: "simple"},
-		"indivisible": {input: "Hi,HowAreYou", option: option.NewByteCount("5"), outputPrefix: "x", wantData: "indivisible"},
-		"zeroDivided": {input: "hello\n", option: option.NewByteCount("0"), outputPrefix: "x", wantData: "zeroDivided"},
+		"simpleCase":  {"HogeHogeHugaHuga", byteCount(t, "4"), "x", "simple"},
+		"indivisible": {"Hi,HowAreYou", byteCount(t, "5"), "x", "indivisible"},
+		"zeroDivided": {"hello\n", byteCount(t, "0"), "x", "zeroDivided"},
 	}
 
 	var s *splitter.Splitter
@@ -114,9 +113,9 @@ func TestSplitUsingChunkCount(t *testing.T) {
 		wantData     string
 		wantErr      error
 	}{
-		"simpleCase":        {input: "HogeHogeHugaHuga", option: option.NewChunkCount(4), outputPrefix: "x", wantData: "simple"},
-		"indivisible":       {input: "Hi,HowAreYou", option: option.NewChunkCount(3), outputPrefix: "x", wantData: "indivisible"},
-		"tooManyChunkCount": {input: "hello\n", option: option.NewChunkCount(100), outputPrefix: "x", wantErr: splitter.ErrZeroChunk},
+		"simpleCase":        {"HogeHogeHugaHuga", chunkCount(t, 4), "x", "simple", nil},
+		"indivisible":       {"Hi,HowAreYou", chunkCount(t, 3), "x", "indivisible", nil},
+		"tooManyChunkCount": {"hello\n", chunkCount(t, 100), "x", "", splitter.ErrZeroChunk},
 	}
 
 	var s *splitter.Splitter
@@ -150,4 +149,22 @@ func TestSplitUsingChunkCount(t *testing.T) {
 			}
 		})
 	}
+}
+
+func lineCount(t *testing.T, n int) option.Command {
+	t.Helper()
+
+	return option.NewLineCount(n)
+}
+
+func chunkCount(t *testing.T, n int) option.Command {
+	t.Helper()
+
+	return option.NewChunkCount(n)
+}
+
+func byteCount(t *testing.T, b string) option.Command {
+	t.Helper()
+
+	return option.NewByteCount(b)
 }
