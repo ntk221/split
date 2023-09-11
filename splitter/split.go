@@ -27,8 +27,6 @@ const (
 )
 
 var (
-	// outputSuffix string = "aa" // split 処理が生成する部分ファイルのsuffix。incrementされていく
-
 	ErrFinishWrite = errors.New("ファイルの書き込みが終了しました")
 	ErrTooManyFile = errors.New("ファイルが生成できる上限を超えました")
 	ErrZeroChunk   = errors.New("chunkが分割可能な上限を超えています")
@@ -42,6 +40,8 @@ type CLI struct {
 	Splitter  *Splitter
 }
 
+// Run は Splitter の split メソッドを呼び出す
+// split　がエラー情報を返すのでそれをそのまま呼び出しもとに返す
 func (cli *CLI) Run(option option.Command) error {
 	input := cli.Input
 	outputDir := cli.OutputDir
@@ -84,9 +84,6 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 	}
 
 	reader := bufio.NewReader(file)
-	// ループが終了するのは
-	// 1. 生成するファイルが制限を超える時("aa" ~ "zz" に収まらないとき)
-	// 2. 読み込みファイルから読む内容がもうない時
 	for {
 		if outputSuffix >= FileLimit {
 			deletePartFile(outputPrefix)
@@ -96,7 +93,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 		// 書き込み先のファイルを生成
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("splitUsingLineCount: %w", err)
+			return fmt.Errorf("splitUsingLineCount(): %w", err)
 		}
 
 		// 読み込み元のファイルから読み込む
@@ -111,7 +108,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 				for _, line := range lines {
 					_, err = outputFile.WriteString(line)
 					if err != nil {
-						return fmt.Errorf("splitUsingLineCount: %w", err)
+						return fmt.Errorf("splitUsingLineCount(): %w", err)
 					}
 				}
 				return nil
@@ -123,14 +120,14 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 		for _, line := range lines {
 			_, err = outputFile.WriteString(line)
 			if err != nil {
-				return fmt.Errorf("splitUsingLineCount: %w", err)
+				return fmt.Errorf("splitUsingLineCount(): %w", err)
 			}
 		}
 
 		// 書き込んだファイルを閉じる
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingLineCount: %w", err)
+			return fmt.Errorf("splitUsingLineCount(): %w", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)
@@ -149,7 +146,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 	reader := bufio.NewReader(file)
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("splitUsingChunkCount: %w", err)
+		return fmt.Errorf("splitUsingChunkCount(): %w", err)
 	}
 
 	chunkCount := chunkCountOption.ConvertToNum()
@@ -169,7 +166,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount: %w", err)
+			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
 		// 読み込みファイルから読み込む
@@ -177,19 +174,19 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 		chunk, ok := readChunk(i, chunkSize, chunkCount, content)
 		if !ok {
 			_ = os.Remove(outputFile.Name())
-			return fmt.Errorf("splitUsingChunkCount: %w", err)
+			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
 		// 書き込み先のファイルに書き込む
 		_, err = outputFile.Write(chunk)
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount: %w", err)
+			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
 		// 書き込んだファイルを閉じる
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount: %w", err)
+			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)
@@ -220,26 +217,26 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount: %w", err)
+			return fmt.Errorf("splitUsingByteCount(): %w", err)
 		}
 
 		buf, err := readBytes(byteCount, reader, outputFile)
 		if err != nil {
 			if errors.Is(err, io.EOF) || errors.Is(err, ErrFinishWrite) {
-				return nil
+				return fmt.Errorf("splitUsingByteCount(): %w", err)
 			}
-			return fmt.Errorf("splitUsingByteCount: %w", err)
+			return fmt.Errorf("splitUsingByteCount(): %w", err)
 		}
 
 		// 書き込み処理
 		_, err = outputFile.Write(buf)
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount: %w", err)
+			return fmt.Errorf("splitUsingByteCount(): %w", err)
 		}
 
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount: %w", err)
+			return fmt.Errorf("splitUsingByteCount(): %w", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)

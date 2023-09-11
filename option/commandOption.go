@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+const (
+	DefaultChunkCount = 0
+	DefaultByteCount  = 0
+	DefaultLineCount  = 1000
+)
+
+type Command interface {
+	IsDefaultValue() bool
+	ConvertToNum() uint64
+}
+
 type LineCount int
 
 func NewLineCount(i int) LineCount       { return LineCount(i) }

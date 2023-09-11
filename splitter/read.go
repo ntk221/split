@@ -20,9 +20,9 @@ func readLines(lineCount uint64, reader *bufio.Reader) ([]string, error) {
 				lines = append(lines, line)
 			}
 			if err == io.EOF {
-				return lines, err
+				return lines, fmt.Errorf("readLines(): %w", err)
 			}
-			return nil, err
+			log.Fatalf("readLines()で読み込みに失敗しました: %v", err)
 		}
 		lines = append(lines, line)
 	}
@@ -64,10 +64,10 @@ func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFil
 				// 1バイトも書き込めなかった場合はファイルを消す
 				if readBytes == 0 {
 					_ = os.Remove(outputFile.Name())
-					return nil, err
+					return nil, fmt.Errorf("readBytes(): %w", err)
 				}
 			}
-			return nil, err
+			log.Fatalf("readBytes()で読み込みに失敗しました: %v", err)
 		}
 		return buf[:n], nil
 	}
@@ -87,22 +87,21 @@ func readBytes(byteCountOption option.ByteCount, reader *bufio.Reader, outputFil
 				// 1バイトも書き込めなかった場合はファイルを消す
 				if readBytes == 0 {
 					_ = os.Remove(outputFile.Name())
-					return nil, err
+					return nil, fmt.Errorf("readBytes(): %w", err)
 				}
 				// 最後に読み込んだ分は書き込んでおく
 				_, err = outputFile.Write(buf[:readBytes+uint64(n)])
 				if err != nil {
-					log.Fatal(err)
+					return nil, fmt.Errorf("readBytes(): %w", err)
 				}
 				err = outputFile.Close()
 				if err != nil {
-					log.Fatal(err)
+					return nil, fmt.Errorf("readBytes(): %w", err)
 				}
 				return nil, ErrFinishWrite
-			} else {
-				fmt.Println("バイトを読み込めませんでした")
-				log.Fatal(err)
 			}
+			// fmt.Println("バイトを読み込めませんでした")
+			log.Fatalf("readBytes()で読み込みに失敗しました: %v", err)
 		}
 
 		readBytes += uint64(n)
