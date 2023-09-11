@@ -108,7 +108,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 				for _, line := range lines {
 					_, err = outputFile.WriteString(line)
 					if err != nil {
-						return fmt.Errorf("splitUsingLineCount(): %w", err)
+						log.Fatalf("splitUsingLineCount()でファイル書き込みに失敗しました: %v", err)
 					}
 				}
 				return nil
@@ -146,7 +146,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 	reader := bufio.NewReader(file)
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("splitUsingChunkCount(): %w", err)
+		log.Fatalf("splitUsingChunkCount()でファイル読み込みに失敗しました: %v", err)
 	}
 
 	chunkCount := chunkCountOption.ConvertToNum()
@@ -166,7 +166,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount(): %w", err)
+			log.Fatalf("splitUsingChunkCount()でファイルオープンに失敗しました: %v", err)
 		}
 
 		// 読み込みファイルから読み込む
@@ -180,13 +180,13 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 		// 書き込み先のファイルに書き込む
 		_, err = outputFile.Write(chunk)
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount(): %w", err)
+			log.Fatalf("splitUsingChunkCount()でファイル書き込みに失敗しました: %v", err)
 		}
 
 		// 書き込んだファイルを閉じる
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingChunkCount(): %w", err)
+			log.Fatalf("splitUsingChunkCount()でファイルのクローズに失敗しました: %v", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)
@@ -217,7 +217,7 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 		// ファイルの作成またはオープン（存在しなければ新規作成、存在すれば上書き）
 		outputFile, err := os.OpenFile(outputDir+"/"+outputPrefix+outputSuffix, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount(): %w", err)
+			log.Fatalf("splitUsingByteCount()でファイルのオープンに失敗しました: %v", err)
 		}
 
 		buf, err := readBytes(byteCount, reader, outputFile)
@@ -231,12 +231,12 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 		// 書き込み処理
 		_, err = outputFile.Write(buf)
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount(): %w", err)
+			log.Fatalf("splitUsingByteCount()でファイルの書き込み処理に失敗しました: %v", err)
 		}
 
 		err = outputFile.Close()
 		if err != nil {
-			return fmt.Errorf("splitUsingByteCount(): %w", err)
+			log.Fatalf("splitUsingByteCount()でファイルのクローズに失敗しました: %v", err)
 		}
 
 		outputSuffix = incrementString(outputSuffix)
