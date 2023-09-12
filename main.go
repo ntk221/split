@@ -17,9 +17,9 @@
 //		 Create split files line_count lines in length.
 //
 //	 	-n chunk_count
-//	     Split file into chunk_count smaller files.
-//	     The first n - 1 files will be of size (size of file / chunk_count ) and
-//	     the last file will contain the remaining bytes.
+//		 Split file into chunk_count smaller files.
+//		 The first n - 1 files will be of size (size of file / chunk_count ) and
+//		 the last file will contain the remaining bytes.
 //
 // プログラムの実行例: ./split -l 2 test.txt
 //
