@@ -111,7 +111,7 @@ func TestSplitUsingChunkCount(t *testing.T) {
 		option       option.Command
 		outputPrefix string
 		wantData     string
-		wantErr      error
+		expectErr    error
 	}{
 		"simpleCase":        {"HogeHogeHugaHuga", chunkCount(t, 4), "x", "simple", nil},
 		"indivisible":       {"Hi,HowAreYou", chunkCount(t, 3), "x", "indivisible", nil},
@@ -136,7 +136,7 @@ func TestSplitUsingChunkCount(t *testing.T) {
 
 			err := cli.Run(option)
 			if err != nil {
-				if !errors.Is(err, tt.wantErr) {
+				if !errors.Is(err, tt.expectErr) {
 					t.Errorf("test case %s: 想定されたエラーではありませんでした。", name)
 				}
 				return

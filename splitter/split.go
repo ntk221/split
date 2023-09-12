@@ -86,7 +86,7 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 	reader := bufio.NewReader(file)
 	for {
 		if outputSuffix >= FileLimit {
-			deletePartFile(outputPrefix)
+			deleteAllPartFile(outputPrefix)
 			return ErrTooManyFile
 		}
 
@@ -101,7 +101,10 @@ func (s *Splitter) splitUsingLineCount(file io.Reader, outputDir string, lineCou
 			// 最後まで読んだ場合の処理
 			if errors.Is(err, io.EOF) {
 				if len(lines) == 0 {
-					_ = os.Remove(outputFile.Name())
+					err = os.Remove(outputFile.Name())
+					if err != nil {
+						log.Fatal(err)
+					}
 					return nil
 				}
 				// EOFにぶつかるまでに読み込んだlineを書き出す
@@ -160,7 +163,7 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 	var i uint64
 	for i = 0; i < chunkCount; i++ {
 		if outputSuffix >= FileLimit {
-			deletePartFile(outputPrefix)
+			deleteAllPartFile(outputPrefix)
 			return ErrTooManyFile
 		}
 
@@ -173,7 +176,10 @@ func (s *Splitter) splitUsingChunkCount(file io.Reader, outputDir string, chunkC
 		// iは分割したchunkに割り振ったindex
 		chunk, ok := readChunk(i, chunkSize, chunkCount, content)
 		if !ok {
-			_ = os.Remove(outputFile.Name())
+			err = os.Remove(outputFile.Name())
+			if err != nil {
+				log.Fatal(err)
+			}
 			return fmt.Errorf("splitUsingChunkCount(): %w", err)
 		}
 
@@ -208,7 +214,7 @@ func (s *Splitter) splitUsingByteCount(file io.Reader, outputDir string, byteCou
 
 	for {
 		if outputSuffix >= FileLimit {
-			deletePartFile(outputPrefix)
+			deleteAllPartFile(outputPrefix)
 			return ErrTooManyFile
 		}
 
@@ -255,7 +261,9 @@ func incrementString(s string) string {
 	return "a" + string(runes)
 }
 
-func deletePartFile(outputPrefix string) {
+// ファイルの上限数を上回る場合に呼ばれる
+// 作成した全てのファイルを消去する
+func deleteAllPartFile(outputPrefix string) {
 	outputSuffix := "aa"
 	for outputSuffix < FileLimit {
 		partName := fmt.Sprintf("%s%s", outputPrefix, outputSuffix)

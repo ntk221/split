@@ -1,5 +1,7 @@
 package splitter
 
+// 渡されるoptionに応じて *bufio.Reader からバイト列を読み込む関数群
+
 import (
 	"bufio"
 	"fmt"
